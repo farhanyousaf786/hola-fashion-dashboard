@@ -1,10 +1,20 @@
-# Getting Started with Create React App
+# Hola Fashion Dashboard
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This project is a React application with Firebase backend integration. It provides a comprehensive dashboard for fashion e-commerce management with features like order management, inventory control, and user authentication.
+
+The frontend was bootstrapped with [Create React App](https://github.com/facebook/create-react-app) and uses Material UI for the user interface components.
 
 ## Available Scripts
 
 In the project directory, you can run:
+
+### `npm start`
+
+Runs the React application in development mode.
+Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+
+The page will reload when you make changes.
+You may also see any lint errors in the console.
 
 ### `npm start`
 
