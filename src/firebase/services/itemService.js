@@ -12,10 +12,10 @@ const ITEMS_COLLECTION = 'items';
  * @param {File[]} imageFiles - Array of image files to upload
  * @returns {Promise<string>} - The ID of the newly created item
  */
-export const addItem = async (item, imageFiles) => {
+export const addItem = async (item, imageFiles = []) => {
   console.log(`[ADD ITEM] Starting to add new item: ${item.name}`);
   console.log(`[ADD ITEM] Item details:`, JSON.stringify(item));
-  console.log(`[ADD ITEM] Number of images to upload: ${imageFiles.length}`);
+  console.log(`[ADD ITEM] Number of images to upload: ${imageFiles?.length || 0}`);
   
   try {
     // Upload images sequentially to avoid timeout issues

@@ -21,7 +21,6 @@ import BasicInfoForm from '../../add_items_page/components/BasicInfoForm';
 import CategoryForm from '../../add_items_page/components/CategoryForm';
 import SizesColorsForm from '../../add_items_page/components/SizesColorsForm';
 import TagsForm from '../../add_items_page/components/TagsForm';
-import ImagesForm from '../../add_items_page/components/ImagesForm';
 
 // Import Firebase service
 import { addItem, updateItem } from '../../../firebase/services/itemService';
@@ -43,39 +42,13 @@ const ITEM_FORM_INITIAL_STATE = {
   brand: ''
 };
 
-// Function to generate placeholder images locally using canvas
-const generatePlaceholderImage = (text) => {
-  // Create a canvas element
-  const canvas = document.createElement('canvas');
-  canvas.width = 400;
-  canvas.height = 400;
-  const ctx = canvas.getContext('2d');
-  
-  // Fill with a gradient background (reddish theme)
-  const gradient = ctx.createLinearGradient(0, 0, 400, 400);
-  gradient.addColorStop(0, '#ffcccb');
-  gradient.addColorStop(1, '#ff6b6b');
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, 400, 400);
-  
-  // Add text
-  ctx.font = 'bold 30px Arial';
-  ctx.fillStyle = 'white';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(text, 200, 200);
-  
-  // Convert to data URL
-  return canvas.toDataURL('image/png');
-};
+
 
 const AddItemDialog = ({ item, onSave, onCancel }) => {
   const [formData, setFormData] = useState(ITEM_FORM_INITIAL_STATE);
   const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState(false);
   const [tagInput, setTagInput] = useState('');
-  const [imageFiles, setImageFiles] = useState([]);
-  const [imagePreviewUrls, setImagePreviewUrls] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -98,33 +71,8 @@ const AddItemDialog = ({ item, onSave, onCancel }) => {
         tags: item.tags || [],
         brand: item.brand || ''
       });
-      
-      // If item has images, set the preview URLs
-      if (item.images && item.images.length > 0) {
-        setImagePreviewUrls(item.images);
-      }
     }
   }, [item]);
-  
-  // Set up default placeholder images for categories
-  useEffect(() => {
-    if (imagePreviewUrls.length === 0) {
-      // Use placeholder images based on category
-      const placeholders = [];
-      if (formData.category === 'tops') {
-        placeholders.push(generatePlaceholderImage('T-Shirt'));
-      } else if (formData.category === 'bottoms') {
-        placeholders.push(generatePlaceholderImage('Pants'));
-      } else if (formData.category === 'dresses') {
-        placeholders.push(generatePlaceholderImage('Dress'));
-      } else if (formData.category === 'outerwear') {
-        placeholders.push(generatePlaceholderImage('Jacket'));
-      } else {
-        placeholders.push(generatePlaceholderImage('Fashion Item'));
-      }
-      setImagePreviewUrls(placeholders);
-    }
-  }, [formData.category, imagePreviewUrls.length]);
 
   // Form handling functions
   const handleChange = (e) => {
@@ -167,6 +115,7 @@ const AddItemDialog = ({ item, onSave, onCancel }) => {
     }
   };
   
+  // Handle tag input changes
   const handleTagInputChange = (e) => {
     setTagInput(e.target.value);
   };
@@ -187,65 +136,7 @@ const AddItemDialog = ({ item, onSave, onCancel }) => {
       tags: formData.tags.filter(tag => tag !== tagToRemove)
     });
   };
-  
-  // Generate a local placeholder image instead of using external service
-  const generatePlaceholderImage = (text) => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 300;
-    canvas.height = 400;
-    const ctx = canvas.getContext('2d');
-    
-    // Fill background
-    ctx.fillStyle = '#f0f0f0';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Add text
-    ctx.fillStyle = '#888888';
-    ctx.font = '24px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text || 'Placeholder', canvas.width / 2, canvas.height / 2);
-    
-    return canvas.toDataURL('image/png');
-  };
 
-  const handleImageUpload = (e) => {
-    const files = Array.from(e.target.files);
-    
-    // Limit to 5 images total
-    if (imageFiles.length + files.length > 5) {
-      setErrors({
-        ...errors,
-        images: 'Maximum 5 images allowed'
-      });
-    } else {
-      setImageFiles([...imageFiles, ...files]);
-      
-      // Create preview URLs
-      const newPreviewUrls = files.map(file => URL.createObjectURL(file));
-      setImagePreviewUrls([...imagePreviewUrls, ...newPreviewUrls]);
-    }
-    
-    // Clear any image errors
-    if (errors.images) {
-      setErrors({
-        ...errors,
-        images: null
-      });
-    }
-  };
-  
-  const handleRemoveImage = (index) => {
-    // Remove file and preview URL at the specified index
-    const newFiles = [...imageFiles];
-    newFiles.splice(index, 1);
-    setImageFiles(newFiles);
-    
-    const newPreviewUrls = [...imagePreviewUrls];
-    newPreviewUrls.splice(index, 1);
-    setImagePreviewUrls(newPreviewUrls);
-  };
-  
   // Validate form fields
   const validateForm = () => {
     const newErrors = {};
@@ -272,10 +163,6 @@ const AddItemDialog = ({ item, onSave, onCancel }) => {
     if (formData.sizes.length === 0) newErrors.sizes = 'At least one size is required';
     if (formData.colors.length === 0) newErrors.colors = 'At least one color is required';
     
-    if (imagePreviewUrls.length === 0) {
-      newErrors.images = 'At least one image is required';
-    }
-    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -295,9 +182,9 @@ const AddItemDialog = ({ item, onSave, onCancel }) => {
           price: parseFloat(formData.price),
           discountPrice: formData.discountPrice ? parseFloat(formData.discountPrice) : 0,
           stock: parseInt(formData.stock),
-          // In a real app, we would upload images to storage and get URLs
-          images: imagePreviewUrls,
-          mainImage: imagePreviewUrls[0] || ''
+          // Use placeholder image URL
+          mainImage: 'https://images.pexels.com/photos/1536619/pexels-photo-1536619.jpeg',
+          images: ['https://images.pexels.com/photos/1536619/pexels-photo-1536619.jpeg']
         });
         
         console.log('Item to save:', newItem.toFirebase());
@@ -305,12 +192,12 @@ const AddItemDialog = ({ item, onSave, onCancel }) => {
         // Save to Firebase
         if (item) {
           // Update existing item
-          await updateItem(item.id, newItem, imageFiles);
+          await updateItem(item.id, newItem);
           console.log('Updating item with ID:', item.id);
         } else {
           // Add new item
-          const itemId = await addItem(newItem, imageFiles);
-          console.log('Item added with ID:', itemId);
+          await addItem(newItem);
+          console.log('Adding new item');
         }
         
         setSuccess(true);
@@ -401,25 +288,13 @@ const AddItemDialog = ({ item, onSave, onCancel }) => {
               formData={formData} 
               tagInput={tagInput} 
               setTagInput={setTagInput} 
+              handleTagInputChange={handleTagInputChange}
               handleAddTag={handleAddTag} 
               handleRemoveTag={handleRemoveTag} 
             />
           </Grid>
           
-          {/* Images */}
-          <Grid item xs={12}>
-            <Typography variant="h6" color="error" sx={{ mb: 1, mt: 2, fontWeight: 500 }}>
-              Images
-            </Typography>
-            <Divider sx={{ mb: 2, backgroundColor: theme.palette.error.light }} />
-            <ImagesForm 
-              imageFiles={imageFiles} 
-              imagePreviewUrls={imagePreviewUrls} 
-              errors={errors} 
-              handleImageUpload={handleImageUpload} 
-              handleRemoveImage={handleRemoveImage} 
-            />
-          </Grid>
+
         </Grid>
       </Box>
       
