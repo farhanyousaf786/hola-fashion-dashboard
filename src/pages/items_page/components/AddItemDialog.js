@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -8,15 +8,13 @@ import {
   DialogActions,
   Typography,
   Divider,
-  useTheme,
-  IconButton
+  useTheme
 } from '@mui/material';
 import {
   Save as SaveIcon,
-  Add as AddIcon,
-  CloudUpload as CloudUploadIcon,
-  Delete as DeleteIcon
+  Add as AddIcon
 } from '@mui/icons-material';
+import ImageUploader from '../../../components/ImageUploader';
 import { ItemModel } from '../../../models/ItemModel';
 
 // Import existing form components
@@ -55,8 +53,6 @@ const AddItemDialog = ({ item, onSave, onCancel }) => {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [imageFiles, setImageFiles] = useState([]);
-  const [imagePreview, setImagePreview] = useState(null);
-  const fileInputRef = useRef(null);
 
   // If item is provided, populate form for editing
   useEffect(() => {
@@ -173,28 +169,9 @@ const AddItemDialog = ({ item, onSave, onCancel }) => {
     return Object.keys(newErrors).length === 0;
   };
   
-  // Handle image upload
-  const handleImageUpload = (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length > 0) {
-      setImageFiles(files);
-      
-      // Create preview for the first image
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(files[0]);
-    }
-  };
-  
-  // Clear selected images
-  const handleClearImages = () => {
-    setImageFiles([]);
-    setImagePreview(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+  // Handle images from ImageUploader
+  const handleImagesChange = (files) => {
+    setImageFiles(files);
   };
 
   // Handle form submission
@@ -340,60 +317,7 @@ const AddItemDialog = ({ item, onSave, onCancel }) => {
               Product Images
             </Typography>
             <Divider sx={{ mb: 2, backgroundColor: theme.palette.error.light }} />
-            
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-              <input
-                accept="image/*"
-                style={{ display: 'none' }}
-                id="image-upload"
-                type="file"
-                onChange={handleImageUpload}
-                ref={fileInputRef}
-              />
-              
-              <label htmlFor="image-upload">
-                <Button
-                  variant="contained"
-                  component="span"
-                  startIcon={<CloudUploadIcon />}
-                  color="error"
-                  sx={{ 
-                    backgroundColor: theme.palette.error.main,
-                    '&:hover': {
-                      backgroundColor: theme.palette.error.dark
-                    }
-                  }}
-                >
-                  Upload Images
-                </Button>
-              </label>
-              
-              {imagePreview && (
-                <Box sx={{ mt: 2, position: 'relative', width: '100%', maxWidth: 300 }}>
-                  <img 
-                    src={imagePreview} 
-                    alt="Product preview" 
-                    style={{ width: '100%', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} 
-                  />
-                  <IconButton 
-                    size="small" 
-                    sx={{ 
-                      position: 'absolute', 
-                      top: 5, 
-                      right: 5, 
-                      backgroundColor: 'rgba(255,255,255,0.8)',
-                      '&:hover': { backgroundColor: 'rgba(255,255,255,0.9)' }
-                    }}
-                    onClick={handleClearImages}
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                  <Typography variant="caption" sx={{ display: 'block', mt: 1, textAlign: 'center' }}>
-                    {imageFiles.length} {imageFiles.length === 1 ? 'image' : 'images'} selected
-                  </Typography>
-                </Box>
-              )}
-            </Box>
+            <ImageUploader onImagesChange={handleImagesChange} maxImages={10} />
           </Grid>
 
         </Grid>
