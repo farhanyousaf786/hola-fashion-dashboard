@@ -10,8 +10,8 @@ const firebaseConfig = {
   apiKey: "AIzaSyDysWfcXJGRPq2mxYP5cEyE4_cQawOuPv8",
   authDomain: "hola-fashion.firebaseapp.com",
   projectId: "hola-fashion",
-  storageBucket: "hola-fashion.appspot.com",
-  messagingSenderId: "113967607669",
+  storageBucket: "hola-fashion.firebasestorage.app",
+    messagingSenderId: "113967607669",
   appId: "1:113967607669:web:f5aa00feafd8f20c9c2d3c",
   measurementId: "G-YZ4PC2887J"
 };

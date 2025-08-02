@@ -78,3 +78,13 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 ### `npm run build` fails to minify
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+
+Good progress so far. Needs some visual tweaks I can suggest:
+
+1. The sidebar menu is visible without even logging in. Login should only ask for username and password
+2. The add items is good, covers the sizes, categories, etc. We will provide proper raw data later on, good work on this. 
+3. Classifying orders is very nice. I noticed, however, that cancelled orders don't result in a negative balance. Yani k wo balance -$30 show nhin hota. Umeed hai k backend par cancelled orders refund policy ko match karein gay. (Will update you later on this). 
+4. For profile, keep in mind we might need different levels. Like someone who does inventory only, someone who manages everything (admin), etc. Aik hi shop hai ye, marketplace scene nahin hai Hola Fashion. 
+5. Baqi inventory add or deduction will depend on further testing, k jab kuch order hota hai to peche se stock mein deduction hoti hai ya nhin. But I like what you've done so far.
+Aik aur additional point hai, give the option to match colors to images for the item listing. It will impress the clients. For example, mein aik item add karta hoon jo k black, white aur pink mein hai. Aur saath colors bhi select kardeta hoon neche options se. To jab website par koi click karta hai pink ko, to automatically uss item ki pink image show hojati hai from the selected gallery of the product. Can you do that?
