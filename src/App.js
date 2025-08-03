@@ -108,6 +108,11 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           backgroundColor: '#E94949',
+          borderRadius: '0 !important', // Force remove any rounded corners
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)', // Clean shadow
+          '& .MuiPaper-root': {
+            borderRadius: '0 !important',
+          },
         },
       },
     },

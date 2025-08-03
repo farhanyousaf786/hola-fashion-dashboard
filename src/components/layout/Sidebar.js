@@ -33,13 +33,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
   
   const drawer = (
     <div>
-      <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Typography variant="h6" component="div" sx={{ fontWeight: 'bold' }}>
-          Hola Fashion Dashboard
-        </Typography>
-      </Box>
-      <Divider />
-      <List>
+      <List sx={{ pt: 1, mt: '64px' }}>
         {menuItems.map((item) => (
           <ListItem key={item.text} disablePadding>
             <ListItemButton
@@ -79,7 +73,12 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
         }}
         sx={{
           display: { xs: 'block', sm: 'none' },
-          '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+          '& .MuiDrawer-paper': { 
+            boxSizing: 'border-box', 
+            width: drawerWidth,
+            marginTop: '64px',
+            height: 'calc(100vh - 64px)'
+          },
         }}
       >
         {drawer}
@@ -90,7 +89,12 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
         variant="permanent"
         sx={{
           display: { xs: 'none', sm: 'block' },
-          '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+          '& .MuiDrawer-paper': { 
+            boxSizing: 'border-box', 
+            width: drawerWidth,
+            marginTop: '64px',
+            height: 'calc(100vh - 64px)'
+          },
         }}
         open
       >
