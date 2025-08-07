@@ -55,7 +55,7 @@ const Layout = ({ children }) => {
               display: { xs: 'none', sm: 'block' }
             }}
           >
-            Hola Fashion Dashboard
+            Rallina Dashboard
           </Typography>
           
           {/* Spacer to push user content to the right */}

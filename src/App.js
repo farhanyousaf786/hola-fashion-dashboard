@@ -19,11 +19,11 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './components/auth/Login';
 import { Box } from '@mui/material';
 
-// Create theme with Hola Fashion brand colors
+// Create theme with Rallina brand colors
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#E94949', // Hola Fashion main brand color
+      main: '#E94949', // Rallina main brand color
       light: '#ED6B6B', // Lighter shade of brand color
       dark: '#C73E3E', // Darker shade of brand color
       contrastText: '#ffffff',

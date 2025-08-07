@@ -13,7 +13,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // API Routes
 app.get('/api/test', (req, res) => {
-  res.json({ message: 'Hello from Hola Fashion Dashboard API!' });
+  res.json({ message: 'Hello from Rallina Dashboard API!' });
 });
 
 // Serve static assets if in production

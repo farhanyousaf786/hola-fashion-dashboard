@@ -116,7 +116,7 @@ const ItemsPage = () => {
         <div className="items-page-header">
           <h1 className="items-page-title">Items</h1>
           <div className="header-buttons">
-            <button 
+            {/* <button 
               className="bulk-upload-button"
               onClick={handleBulkUpload}
               disabled={bulkUploading || loading}
@@ -132,7 +132,7 @@ const ItemsPage = () => {
                   Bulk Upload
                 </>
               )}
-            </button>
+            </button> */}
             <button 
               className="add-item-button"
               onClick={() => handleOpenDialog()}

@@ -24,7 +24,7 @@ const SAMPLE_ITEMS = [
     featured: true,
     sizes: ['S', 'M', 'L'],
     colors: ['Red'],
-    brand: 'Hola Fashion'
+    brand: 'Rallina'
   },
   {
     name: 'Royal Blue Long Prom Gown',
@@ -37,7 +37,7 @@ const SAMPLE_ITEMS = [
     featured: false,
     sizes: ['M', 'L', 'XL'],
     colors: ['Blue'],
-    brand: 'Hola Fashion'
+    brand: 'Rallina'
   },
   {
     name: 'Short Sparkly Prom Dress',
@@ -50,7 +50,7 @@ const SAMPLE_ITEMS = [
     featured: true,
     sizes: ['XS', 'S', 'M'],
     colors: ['Silver'],
-    brand: 'Hola Fashion'
+    brand: 'Rallina'
   },
   {
     name: 'Plus Size Prom Gown',
@@ -63,7 +63,7 @@ const SAMPLE_ITEMS = [
     featured: false,
     sizes: ['XL', 'XXL', 'XXXL'],
     colors: ['Purple'],
-    brand: 'Hola Fashion'
+    brand: 'Rallina'
   },
 
   // HOCO items
@@ -78,7 +78,7 @@ const SAMPLE_ITEMS = [
     featured: true,
     sizes: ['S', 'M', 'L'],
     colors: ['Pink'],
-    brand: 'Hola Fashion'
+    brand: 'Rallina'
   },
   {
     name: 'Navy Blue Long Homecoming Dress',
@@ -91,7 +91,7 @@ const SAMPLE_ITEMS = [
     featured: false,
     sizes: ['S', 'M', 'L'],
     colors: ['Navy'],
-    brand: 'Hola Fashion'
+    brand: 'Rallina'
   },
   {
     name: 'Plus Size Homecoming Dress',
@@ -104,7 +104,7 @@ const SAMPLE_ITEMS = [
     featured: false,
     sizes: ['XL', 'XXL'],
     colors: ['Burgundy'],
-    brand: 'Hola Fashion'
+    brand: 'Rallina'
   },
 
   // WEDDING items
@@ -119,7 +119,7 @@ const SAMPLE_ITEMS = [
     featured: true,
     sizes: ['S', 'M', 'L'],
     colors: ['White'],
-    brand: 'Hola Fashion'
+    brand: 'Rallina'
   },
   {
     name: 'Ivory Bridal Gown',
@@ -132,7 +132,7 @@ const SAMPLE_ITEMS = [
     featured: true,
     sizes: ['M', 'L', 'XL'],
     colors: ['Beige'],
-    brand: 'Hola Fashion'
+    brand: 'Rallina'
   },
   {
     name: 'Wedding Veil Set',
@@ -145,7 +145,7 @@ const SAMPLE_ITEMS = [
     featured: false,
     sizes: ['One Size'],
     colors: ['White'],
-    brand: 'Hola Fashion'
+    brand: 'Rallina'
   },
 
   // WEDDING GUEST items
@@ -160,7 +160,7 @@ const SAMPLE_ITEMS = [
     featured: false,
     sizes: ['S', 'M', 'L'],
     colors: ['Navy'],
-    brand: 'Hola Fashion'
+    brand: 'Rallina'
   },
 
   // BRIDESMAID items
@@ -175,7 +175,7 @@ const SAMPLE_ITEMS = [
     featured: true,
     sizes: ['S', 'M', 'L', 'XL'],
     colors: ['Pink'],
-    brand: 'Hola Fashion'
+    brand: 'Rallina'
   },
 
   // MOTHER OF BRIDE items
@@ -190,7 +190,7 @@ const SAMPLE_ITEMS = [
     featured: false,
     sizes: ['M', 'L', 'XL'],
     colors: ['Navy'],
-    brand: 'Hola Fashion'
+    brand: 'Rallina'
   },
 
   // QUINCE items
@@ -205,7 +205,7 @@ const SAMPLE_ITEMS = [
     featured: true,
     sizes: ['S', 'M', 'L'],
     colors: ['Purple'],
-    brand: 'Hola Fashion'
+    brand: 'Rallina'
   },
 
   // FORMAL items
@@ -220,7 +220,7 @@ const SAMPLE_ITEMS = [
     featured: true,
     sizes: ['S', 'M', 'L'],
     colors: ['Black'],
-    brand: 'Hola Fashion'
+    brand: 'Rallina'
   },
   {
     name: 'Gold Cocktail Dress',
@@ -233,7 +233,7 @@ const SAMPLE_ITEMS = [
     featured: false,
     sizes: ['S', 'M', 'L'],
     colors: ['Gold'],
-    brand: 'Hola Fashion'
+    brand: 'Rallina'
   }
 ];
 
