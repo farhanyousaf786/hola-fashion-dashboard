@@ -3,6 +3,7 @@ import './ItemsPage.css';
 import ItemCard from './components/ItemCard';
 import AddItemDialog from './components/AddItemDialog';
 import { getAllItems, deleteItem } from '../../firebase/services/itemService';
+import { bulkUploadSampleItems } from '../../utils/bulkUploadItems';
 
 const ItemsPage = () => {
   const [snackbarClosing, setSnackbarClosing] = useState(false);
@@ -13,6 +14,7 @@ const ItemsPage = () => {
   const [error, setError] = useState(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [bulkUploading, setBulkUploading] = useState(false);
 
   // Fetch items from Firebase when component mounts
   useEffect(() => {
@@ -81,18 +83,64 @@ const ItemsPage = () => {
     }, 300);
   };
 
+  const handleBulkUpload = async () => {
+    if (bulkUploading) return;
+    
+    setBulkUploading(true);
+    setError(null);
+    
+    try {
+      const result = await bulkUploadSampleItems();
+      
+      if (result.success) {
+        setSnackbarMessage(`✅ Bulk upload complete! Added ${result.successful}/${result.total} items`);
+        setSnackbarOpen(true);
+        // Refresh items list
+        fetchItems();
+      } else {
+        setError('Bulk upload failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Bulk upload error:', error);
+      setError('Bulk upload failed. Please check console for details.');
+      setSnackbarMessage('❌ Bulk upload failed');
+      setSnackbarOpen(true);
+    } finally {
+      setBulkUploading(false);
+    }
+  };
+
   return (
     <div className="items-page">
       <div className="items-page-container">
         <div className="items-page-header">
           <h1 className="items-page-title">Items</h1>
-          <button 
-            className="add-item-button"
-            onClick={() => handleOpenDialog()}
-          >
-            <span className="add-icon"></span>
-            Add Item
-          </button>
+          <div className="header-buttons">
+            <button 
+              className="bulk-upload-button"
+              onClick={handleBulkUpload}
+              disabled={bulkUploading || loading}
+            >
+              {bulkUploading ? (
+                <>
+                  <span className="loading-spinner"></span>
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <span className="bulk-icon">📦</span>
+                  Bulk Upload
+                </>
+              )}
+            </button>
+            <button 
+              className="add-item-button"
+              onClick={() => handleOpenDialog()}
+            >
+              <span className="add-icon"></span>
+              Add Item
+            </button>
+          </div>
         </div>
 
       {/* Error message */}

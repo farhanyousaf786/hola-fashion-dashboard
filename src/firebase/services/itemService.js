@@ -126,6 +126,7 @@ export const getItemById = async (id) => {
     if (docSnap.exists()) {
       return ItemModel.fromFirebase(docSnap.id, docSnap.data());
     } else {
+      console.log('No such document!');
       return null;
     }
   } catch (error) {
@@ -142,9 +143,9 @@ export const getItemById = async (id) => {
  * @returns {Promise<void>}
  */
 export const updateItem = async (id, item, newImageFiles = []) => {
-  console.log(`[UPDATE ITEM] Starting to update item with ID: ${id}`);
+  console.log(`[UPDATE ITEM] Starting to update item: ${id}`);
   console.log(`[UPDATE ITEM] Updated item details:`, JSON.stringify(item));
-  console.log(`[UPDATE ITEM] Number of new images to upload: ${newImageFiles.length}`);
+  console.log(`[UPDATE ITEM] Number of new images to upload: ${newImageFiles?.length || 0}`);
   
   try {
     // Upload any new images sequentially
@@ -281,3 +282,95 @@ export const getItemsByGender = async (gender) => {
     throw error;
   }
 };
+
+/**
+ * Get items by header category
+ * @param {string} headerCategory - The header category to filter by (prom, hoco, wedding, etc.)
+ * @returns {Promise<ItemModel[]>} - Array of items in the header category
+ */
+export const getItemsByHeaderCategory = async (headerCategory) => {
+  try {
+    const q = query(
+      collection(db, ITEMS_COLLECTION),
+      where('headerCategory', '==', headerCategory)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ItemModel.fromFirebase(doc.id, doc.data()));
+  } catch (error) {
+    console.error(`Error getting items by header category ${headerCategory}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Get items by sub-header category
+ * @param {string} headerCategory - The header category (prom, hoco, wedding, etc.)
+ * @param {string} subHeaderCategory - The sub-header category to filter by
+ * @returns {Promise<ItemModel[]>} - Array of items in the sub-header category
+ */
+export const getItemsBySubHeaderCategory = async (headerCategory, subHeaderCategory) => {
+  try {
+    const q = query(
+      collection(db, ITEMS_COLLECTION),
+      where('headerCategory', '==', headerCategory),
+      where('subHeaderCategory', '==', subHeaderCategory)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ItemModel.fromFirebase(doc.id, doc.data()));
+  } catch (error) {
+    console.error(`Error getting items by sub-header category ${headerCategory}/${subHeaderCategory}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Get items with complex filtering (great for your website!)
+ * @param {Object} filters - Filter object
+ * @param {string} filters.headerCategory - Header category filter
+ * @param {string} filters.subHeaderCategory - Sub-header category filter
+ * @param {string} filters.gender - Gender filter
+ * @param {boolean} filters.featured - Featured filter
+ * @param {number} filters.maxPrice - Maximum price filter
+ * @param {number} filters.limit - Limit results
+ * @returns {Promise<ItemModel[]>} - Array of filtered items
+ */
+export const getItemsWithFilters = async (filters = {}) => {
+  try {
+    let q = collection(db, ITEMS_COLLECTION);
+    const constraints = [];
+    
+    if (filters.headerCategory) {
+      constraints.push(where('headerCategory', '==', filters.headerCategory));
+    }
+    if (filters.subHeaderCategory) {
+      constraints.push(where('subHeaderCategory', '==', filters.subHeaderCategory));
+    }
+    if (filters.gender) {
+      constraints.push(where('gender', '==', filters.gender));
+    }
+    if (filters.featured !== undefined) {
+      constraints.push(where('featured', '==', filters.featured));
+    }
+    if (filters.maxPrice) {
+      constraints.push(where('price', '<=', filters.maxPrice));
+    }
+    
+    // Add ordering and limit
+    constraints.push(orderBy('createdAt', 'desc'));
+    if (filters.limit) {
+      constraints.push(limit(filters.limit));
+    }
+    
+    q = query(q, ...constraints);
+    
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ItemModel.fromFirebase(doc.id, doc.data()));
+  } catch (error) {
+    console.error('Error getting items with filters:', error);
+    throw error;
+  }
+};
+
+

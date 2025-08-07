@@ -9,6 +9,8 @@ export class ItemModel {
     gender = '', // 'men', 'women', 'unisex'
     category = '',
     subCategory = '',
+    headerCategory = '', // Main header navigation category
+    subHeaderCategory = '', // Sub-header navigation category
     sizes = [],
     colors = [],
     images = [],
@@ -29,6 +31,8 @@ export class ItemModel {
     this.gender = gender;
     this.category = category;
     this.subCategory = subCategory;
+    this.headerCategory = headerCategory;
+    this.subHeaderCategory = subHeaderCategory;
     this.sizes = sizes;
     this.colors = colors;
     this.images = images;
@@ -52,6 +56,8 @@ export class ItemModel {
       gender: this.gender,
       category: this.category,
       subCategory: this.subCategory,
+      headerCategory: this.headerCategory,
+      subHeaderCategory: this.subHeaderCategory,
       sizes: this.sizes,
       colors: this.colors,
       images: this.images,
@@ -94,20 +100,16 @@ export const ITEM_CATEGORIES = {
     { value: 'accessories', label: 'Accessories' }
   ],
   WOMEN: [
-    { value: 'dresses', label: 'Dresses' },
-    { value: 'tops', label: 'Tops' },
-    { value: 'blouses', label: 'Blouses' },
-    { value: 't-shirts', label: 'T-Shirts' },
-    { value: 'jeans', label: 'Jeans' },
-    { value: 'pants', label: 'Pants' },
-    { value: 'skirts', label: 'Skirts' },
-    { value: 'jackets', label: 'Jackets' },
-    { value: 'sweaters', label: 'Sweaters' },
-    { value: 'hoodies', label: 'Hoodies' },
-    { value: 'lingerie', label: 'Lingerie' },
-    { value: 'shoes', label: 'Shoes' },
-    { value: 'bags', label: 'Bags' },
-    { value: 'accessories', label: 'Accessories' }
+    { value: 'prom-dresses', label: 'Prom Dresses' },
+    { value: 'homecoming-dresses', label: 'Homecoming Dresses' },
+    { value: 'evening-gowns', label: 'Evening Gowns' },
+    { value: 'cocktail-dresses', label: 'Cocktail Dresses' },
+    { value: 'formal-gowns-sale', label: 'Formal Gowns on Sale' },
+    { value: 'wedding-guest-dresses', label: 'Wedding Guest Dresses' },
+    { value: 'plus-size-dresses', label: 'Plus Size Dresses' },
+    { value: 'mother-bride-dresses', label: 'Mother of the Bride Dresses' },
+    { value: 'bridesmaid-dresses', label: 'Bridesmaid Dresses' },
+    { value: 'quinceanera-dresses', label: 'Quinceanera Dresses' }
   ],
   UNISEX: [
     { value: 't-shirts', label: 'T-Shirts' },
@@ -116,6 +118,62 @@ export const ITEM_CATEGORIES = {
     { value: 'jackets', label: 'Jackets' },
     { value: 'accessories', label: 'Accessories' },
     { value: 'shoes', label: 'Shoes' }
+  ]
+};
+
+// Header navigation categories based on website navigation
+export const HEADER_CATEGORIES = [
+  { value: 'prom', label: 'PROM' },
+  { value: 'hoco', label: 'HOCO' },
+  { value: 'wedding', label: 'WEDDING' },
+  { value: 'wedding-guest', label: 'WEDDING GUEST' },
+  { value: 'bridesmaid', label: 'BRIDESMAID' },
+  { value: 'mother-of-bride', label: 'MOTHER OF BRIDE' },
+  { value: 'quince', label: 'QUINCE' },
+  { value: 'formal', label: 'FORMAL' },
+  { value: 'others', label: 'OTHERS' }
+];
+
+// Sub-header categories for each main header category
+export const SUB_HEADER_CATEGORIES = {
+  'prom': [
+    { value: 'long-prom', label: 'Long Prom Dresses' },
+    { value: 'short-prom', label: 'Short Prom Dresses' },
+    { value: 'plus-size-prom', label: 'Plus Size Prom' }
+  ],
+  'hoco': [
+    { value: 'short-hoco', label: 'Short Homecoming' },
+    { value: 'long-hoco', label: 'Long Homecoming' },
+    { value: 'plus-size-hoco', label: 'Plus Size Homecoming' }
+  ],
+  'wedding': [
+    { value: 'wedding-dresses', label: 'Wedding Dresses' },
+    { value: 'wedding-accessories', label: 'Wedding Accessories' }
+  ],
+  'wedding-guest': [
+    { value: 'guest-dresses', label: 'Guest Dresses' },
+    { value: 'guest-accessories', label: 'Guest Accessories' }
+  ],
+  'bridesmaid': [
+    { value: 'bridesmaid-dresses', label: 'Bridesmaid Dresses' },
+    { value: 'bridesmaid-accessories', label: 'Bridesmaid Accessories' }
+  ],
+  'mother-of-bride': [
+    { value: 'mother-dresses', label: 'Mother Dresses' },
+    { value: 'mother-accessories', label: 'Mother Accessories' }
+  ],
+  'quince': [
+    { value: 'quince-dresses', label: 'Quinceanera Dresses' },
+    { value: 'quince-accessories', label: 'Quinceanera Accessories' }
+  ],
+  'formal': [
+    { value: 'evening-gowns', label: 'Evening Gowns' },
+    { value: 'cocktail-dresses', label: 'Cocktail Dresses' }
+  ],
+  'others': [
+    { value: 'accessories', label: 'Accessories' },
+    { value: 'shoes', label: 'Shoes' },
+    { value: 'jewelry', label: 'Jewelry' }
   ]
 };
 

@@ -35,6 +35,8 @@ const ITEM_FORM_INITIAL_STATE = {
   gender: '',
   category: '',
   subCategory: '',
+  headerCategory: '',
+  subHeaderCategory: '',
   sizes: [],
   colors: [],
   material: '',
@@ -66,6 +68,8 @@ const AddItemDialog = ({ item, onSave, onCancel }) => {
         gender: item.gender || '',
         category: item.category || '',
         subCategory: item.subCategory || '',
+        headerCategory: item.headerCategory || '',
+        subHeaderCategory: item.subHeaderCategory || '',
         sizes: item.sizes || [],
         colors: item.colors || [],
         material: item.material || '',
@@ -162,6 +166,7 @@ const AddItemDialog = ({ item, onSave, onCancel }) => {
     
     if (!formData.gender) newErrors.gender = 'Gender is required';
     if (!formData.category) newErrors.category = 'Category is required';
+    if (!formData.headerCategory) newErrors.headerCategory = 'Header category is required';
     if (formData.sizes.length === 0) newErrors.sizes = 'At least one size is required';
     if (formData.colors.length === 0) newErrors.colors = 'At least one color is required';
     
@@ -179,10 +184,9 @@ const AddItemDialog = ({ item, onSave, onCancel }) => {
     e.preventDefault();
     
     // Validate form
-    const validationErrors = validateForm();
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      return;
+    const isValid = validateForm();
+    if (!isValid) {
+      return; // Errors are already set in validateForm
     }
     
     setLoading(true);
@@ -200,6 +204,8 @@ const AddItemDialog = ({ item, onSave, onCancel }) => {
         gender: formData.gender,
         category: formData.category,
         subCategory: formData.subCategory,
+        headerCategory: formData.headerCategory,
+        subHeaderCategory: formData.subHeaderCategory,
         sizes: formData.sizes,
         colors: formData.colors,
         material: formData.material,

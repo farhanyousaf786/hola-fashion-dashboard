@@ -15,13 +15,19 @@ import {
   TextField,
   Checkbox
 } from '@mui/material';
-import { ITEM_CATEGORIES } from '../../../models/ItemModel';
+import { ITEM_CATEGORIES, HEADER_CATEGORIES, SUB_HEADER_CATEGORIES } from '../../../models/ItemModel';
 
 const CategoryForm = ({ formData, errors, handleChange, handleCheckboxChange }) => {
   // Get categories based on selected gender
   const getCategories = () => {
     if (!formData.gender) return [];
     return ITEM_CATEGORIES[formData.gender.toUpperCase()] || [];
+  };
+
+  // Get sub-header categories based on selected header category
+  const getSubHeaderCategories = () => {
+    if (!formData.headerCategory) return [];
+    return SUB_HEADER_CATEGORIES[formData.headerCategory] || [];
   };
 
   return (
@@ -72,6 +78,43 @@ const CategoryForm = ({ formData, errors, handleChange, handleCheckboxChange }) 
           onChange={handleChange}
           sx={{ mb: 2 }}
         />
+      </Grid>
+      
+      <Grid item xs={12}>
+        <FormControl fullWidth error={!!errors.headerCategory} sx={{ mb: 2 }}>
+          <InputLabel>Header Category</InputLabel>
+          <Select
+            name="headerCategory"
+            value={formData.headerCategory}
+            onChange={handleChange}
+          >
+            {HEADER_CATEGORIES.map((category) => (
+              <MenuItem key={category.value} value={category.value}>
+                {category.label}
+              </MenuItem>
+            ))}
+          </Select>
+          {errors.headerCategory && <FormHelperText>{errors.headerCategory}</FormHelperText>}
+        </FormControl>
+      </Grid>
+      
+      <Grid item xs={12}>
+        <FormControl fullWidth error={!!errors.subHeaderCategory} sx={{ mb: 2 }}>
+          <InputLabel>Sub-Header Category (Optional)</InputLabel>
+          <Select
+            name="subHeaderCategory"
+            value={formData.subHeaderCategory}
+            onChange={handleChange}
+            disabled={!formData.headerCategory}
+          >
+            {getSubHeaderCategories().map((category) => (
+              <MenuItem key={category.value} value={category.value}>
+                {category.label}
+              </MenuItem>
+            ))}
+          </Select>
+          {errors.subHeaderCategory && <FormHelperText>{errors.subHeaderCategory}</FormHelperText>}
+        </FormControl>
       </Grid>
       
       <Grid item xs={12}>

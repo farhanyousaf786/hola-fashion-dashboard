@@ -21,8 +21,9 @@
 .items-page-title {
   font-size: 28px;
   font-weight: 600;
-  color: #3f51b5;
+  color: #E94949;
   position: relative;
+  font-family: "Playfair Display", serif;
 }
 
 .items-page-title::after {
@@ -32,12 +33,18 @@
   left: 0;
   width: 60px;
   height: 4px;
-  background-color: #3f51b5;
+  background-color: #E94949;
   border-radius: 2px;
 }
 
+.header-buttons {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
 .add-item-button {
-  background-color: #3f51b5;
+  background-color: #E94949;
   color: white;
   border: none;
   border-radius: 8px;
@@ -48,6 +55,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  transition: background-color 0.2s ease;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   transition: all 0.2s;
 }
@@ -55,13 +63,55 @@
 .add-item-button:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-  background-color: #303f9f;
+  background-color: #C73E3E;
 }
 
 .add-icon::before {
   content: "+";
   font-size: 20px;
   font-weight: bold;
+}
+
+.bulk-upload-button {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.bulk-upload-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  background-color: #45a049;
+}
+
+.bulk-upload-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.bulk-icon {
+  font-size: 16px;
+}
+
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s linear infinite;
 }
 
 .error-alert {
