@@ -1,4 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { collection, query, where, getDocs, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db, auth } from '../../firebase/firebase';
+import './Orders.css';
+
 import {
   Box,
   Typography,
@@ -19,39 +24,34 @@ import {
   MenuItem,
   FormControl,
   Select,
-  InputLabel
+  InputLabel,
+  CircularProgress
 } from '@mui/material';
 import {
   Search as SearchIcon,
   FilterList as FilterIcon,
   Visibility as ViewIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon
+  Receipt as ReceiptIcon,
+  LocalShipping as ShippingIcon
 } from '@mui/icons-material';
 
-// Sample order data
-const createData = (id, customer, date, items, total, status) => {
-  return { id, customer, date, items, total, status };
-};
-
-const rows = [
-  createData('#ORD-001', 'John Doe', '2025-07-29', 3, '$120.00', 'Delivered'),
-  createData('#ORD-002', 'Jane Smith', '2025-07-28', 1, '$85.50', 'Processing'),
-  createData('#ORD-003', 'Robert Johnson', '2025-07-27', 5, '$210.75', 'Shipped'),
-  createData('#ORD-004', 'Emily Davis', '2025-07-26', 2, '$45.99', 'Delivered'),
-  createData('#ORD-005', 'Michael Brown', '2025-07-25', 4, '$175.25', 'Processing'),
-  createData('#ORD-006', 'Sarah Wilson', '2025-07-24', 1, '$32.50', 'Cancelled'),
-  createData('#ORD-007', 'David Miller', '2025-07-23', 3, '$95.75', 'Delivered'),
-  createData('#ORD-008', 'Jennifer Taylor', '2025-07-22', 2, '$67.99', 'Shipped'),
-  createData('#ORD-009', 'Thomas Anderson', '2025-07-21', 6, '$245.50', 'Processing'),
-  createData('#ORD-010', 'Lisa Moore', '2025-07-20', 1, '$29.99', 'Delivered'),
+// Status options
+const statusOptions = [
+  { value: 'confirmed', label: 'Confirmed', color: 'info' },
+  { value: 'processing', label: 'Processing', color: 'warning' },
+  { value: 'shipped', label: 'Shipped', color: 'primary' },
+  { value: 'delivered', label: 'Delivered', color: 'success' },
+  { value: 'cancelled', label: 'Cancelled', color: 'error' },
 ];
 
 const Orders = () => {
+  const navigate = useNavigate();
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [anchorEl, setAnchorEl] = useState(null);
 
   const handleChangePage = (event, newPage) => {
@@ -75,29 +75,146 @@ const Orders = () => {
     setStatusFilter(event.target.value);
   };
 
+  // Fetch all orders from Firebase
+  useEffect(() => {
+    const fetchAllOrders = async () => {
+      console.log('=== FETCHING ALL ORDERS ===');
+      setLoading(true);
+      const ordersList = [];
+
+      // 1. Get all orders from root 'orders' collection
+      try {
+        console.log('Fetching from root orders collection...');
+        const ordersRef = collection(db, 'orders');
+        const q = query(ordersRef, orderBy('createdAt', 'desc'));
+        const querySnapshot = await getDocs(q);
+        console.log(`Found ${querySnapshot.size} orders in root collection`);
+        
+        querySnapshot.forEach((doc) => {
+          try {
+            const data = doc.data();
+            const orderDate = data.createdAt?.toDate?.();
+            ordersList.push({
+              id: doc.id,
+              ...data,
+              date: orderDate ? orderDate.toLocaleDateString() : 'N/A',
+              customer: data.customerDetails?.email || 'Guest User',
+              total: data.total || 0,
+              status: data.status || 'pending',
+              source: 'root_orders'
+            });
+          } catch (error) {
+            console.error('Error processing order:', error);
+          }
+        });
+      } catch (error) {
+        console.error('Error fetching root orders:', error);
+      }
+
+      // 2. Get all user orders
+      try {
+        console.log('Fetching all user orders...');
+        const usersRef = collection(db, 'users');
+        const usersSnapshot = await getDocs(usersRef);
+        
+        for (const userDoc of usersSnapshot.docs) {
+          const userOrdersRef = collection(db, 'users', userDoc.id, 'orders');
+          const userOrdersQuery = query(userOrdersRef, orderBy('createdAt', 'desc'));
+          const userOrdersSnapshot = await getDocs(userOrdersQuery);
+          
+          userOrdersSnapshot.forEach((orderDoc) => {
+            try {
+              const data = orderDoc.data();
+              const orderDate = data.createdAt?.toDate?.();
+              ordersList.push({
+                id: orderDoc.id,
+                ...data,
+                date: orderDate ? orderDate.toLocaleDateString() : 'N/A',
+                customer: data.customerDetails?.email || `User ${userDoc.id.substring(0, 6)}`,
+                total: data.total || 0,
+                status: data.status || 'pending',
+                userId: userDoc.id,
+                source: `user_${userDoc.id}`
+              });
+            } catch (error) {
+              console.error('Error processing user order:', error);
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching user orders:', error);
+      }
+
+      // 3. Get all anonymous orders
+      try {
+        console.log('Fetching anonymous orders...');
+        const anonOrdersRef = collection(db, 'anonymousOrders');
+        const anonOrdersSnapshot = await getDocs(anonOrdersRef);
+        
+        for (const anonDoc of anonOrdersSnapshot.docs) {
+          const anonUserOrdersRef = collection(db, 'anonymousOrders', anonDoc.id, 'orders');
+          const anonUserOrdersQuery = query(anonUserOrdersRef, orderBy('createdAt', 'desc'));
+          const anonUserOrdersSnapshot = await getDocs(anonUserOrdersQuery);
+          
+          anonUserOrdersSnapshot.forEach((orderDoc) => {
+            try {
+              const data = orderDoc.data();
+              const orderDate = data.createdAt?.toDate?.();
+              ordersList.push({
+                id: orderDoc.id,
+                ...data,
+                date: orderDate ? orderDate.toLocaleDateString() : 'N/A',
+                customer: data.customerDetails?.email || 'Guest User',
+                total: data.total || 0,
+                status: data.status || 'pending',
+                isAnonymous: true,
+                source: `anon_${anonDoc.id}`
+              });
+            } catch (error) {
+              console.error('Error processing anonymous order:', error);
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching anonymous orders:', error);
+      }
+
+      // Sort all orders by date (newest first)
+      const sortedOrders = [...ordersList].sort((a, b) => {
+        const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
+        const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
+        return dateB - dateA;
+      });
+      
+      console.log(`Total orders found: ${sortedOrders.length}`);
+      console.log('Orders data:', sortedOrders);
+      setOrders(sortedOrders);
+      setLoading(false);
+    };
+
+    fetchAllOrders();
+  }, []);
+
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'Delivered':
-        return 'success';
-      case 'Processing':
-        return 'warning';
-      case 'Shipped':
-        return 'info';
-      case 'Cancelled':
-        return 'error';
-      default:
-        return 'default';
-    }
+    const statusOption = statusOptions.find((opt) => opt.value === status);
+    return statusOption ? statusOption.color : 'default';
+  };
+
+  const getStatusLabel = (status) => {
+    const statusOption = statusOptions.find((opt) => opt.value === status);
+    return statusOption ? statusOption.label : status;
   };
 
   // Filter orders based on search term and status filter
-  const filteredRows = rows.filter(row => {
-    const matchesSearch = searchTerm === '' || 
-      row.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      row.customer.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === '' || row.status === statusFilter;
-    
+  const filteredRows = orders.filter((order) => {
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch =
+      order.id?.toLowerCase().includes(searchLower) ||
+      order.customerDetails?.email?.toLowerCase().includes(searchLower) ||
+      order.id?.toLowerCase().includes(searchLower);
+
+    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+
     return matchesSearch && matchesStatus;
   });
 
@@ -107,34 +224,40 @@ const Orders = () => {
     page * rowsPerPage + rowsPerPage
   );
 
+  const handleViewOrder = (orderId) => {
+    navigate(`/orders/${orderId}`);
+  };
+
+
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom>
-        Orders Management
-      </Typography>
-      
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between' }}>
-        <TextField
-          placeholder="Search orders..."
-          variant="outlined"
-          size="small"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-          sx={{ width: '300px' }}
-        />
+    <Box className="ordersContainer">
+      <Box className="ordersHeader">
+        <Typography variant="h4" component="h1">
+          Orders Management
+        </Typography>
         
-        <Box>
+        <Box className="searchContainer">
+          <TextField
+            className="searchField"
+            placeholder="Search orders..."
+            variant="outlined"
+            size="small"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+          />
+          
           <Button 
-            variant="outlined" 
-            startIcon={<FilterIcon />}
+            variant="contained" 
+            color="primary" 
             onClick={handleFilterClick}
+            className="actionButton"
           >
             Filter
           </Button>
@@ -142,102 +265,142 @@ const Orders = () => {
             anchorEl={anchorEl}
             open={Boolean(anchorEl)}
             onClose={handleFilterClose}
+            anchorOrigin={{
+              vertical: 'bottom',
+              horizontal: 'right',
+            }}
+            transformOrigin={{
+              vertical: 'top',
+              horizontal: 'right',
+            }}
           >
-            <Box sx={{ p: 2, width: '250px' }}>
+            <div className="filterMenu">
+              <Typography variant="subtitle2" className="filterTitle">
+                Filter by Status
+              </Typography>
               <FormControl fullWidth size="small">
-                <InputLabel>Status</InputLabel>
                 <Select
                   value={statusFilter}
-                  label="Status"
                   onChange={handleStatusFilterChange}
+                  displayEmpty
+                  size="small"
                 >
-                  <MenuItem value="">All</MenuItem>
-                  <MenuItem value="Delivered">Delivered</MenuItem>
-                  <MenuItem value="Processing">Processing</MenuItem>
-                  <MenuItem value="Shipped">Shipped</MenuItem>
-                  <MenuItem value="Cancelled">Cancelled</MenuItem>
+                  <MenuItem value="">All Status</MenuItem>
+                  {statusOptions.map((status) => (
+                    <MenuItem key={status.value} value={status.value}>
+                      {status.label}
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
-              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+              <div className="filterActions">
                 <Button 
                   size="small" 
-                  onClick={() => setStatusFilter('')}
+                  onClick={() => {
+                    setStatusFilter('');
+                    handleFilterClose();
+                  }}
+                  disabled={!statusFilter}
                 >
-                  Clear
+                  Reset
                 </Button>
-                <Button 
-                  size="small" 
-                  variant="contained" 
-                  onClick={handleFilterClose}
-                  sx={{ ml: 1 }}
-                >
-                  Apply
-                </Button>
-              </Box>
-            </Box>
+              </div>
+            </div>
           </Menu>
         </Box>
       </Box>
       
-      <Paper elevation={3}>
-        <TableContainer>
-          <Table sx={{ minWidth: 650 }}>
-            <TableHead>
-              <TableRow>
-                <TableCell>Order ID</TableCell>
-                <TableCell>Customer</TableCell>
-                <TableCell>Date</TableCell>
-                <TableCell>Items</TableCell>
-                <TableCell>Total</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell align="center">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {displayedRows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-                >
-                  <TableCell component="th" scope="row">
-                    {row.id}
-                  </TableCell>
-                  <TableCell>{row.customer}</TableCell>
-                  <TableCell>{row.date}</TableCell>
-                  <TableCell>{row.items}</TableCell>
-                  <TableCell>{row.total}</TableCell>
-                  <TableCell>
-                    <Chip 
-                      label={row.status} 
-                      color={getStatusColor(row.status)} 
-                      size="small" 
-                    />
-                  </TableCell>
-                  <TableCell align="center">
-                    <IconButton size="small" color="primary">
-                      <ViewIcon fontSize="small" />
-                    </IconButton>
-                    <IconButton size="small" color="secondary">
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                    <IconButton size="small" color="error">
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </TableCell>
+      <Paper elevation={0} className="tablePaper">
+        {loading ? (
+          <div className="emptyState">
+            <CircularProgress />
+          </div>
+        ) : (
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow className="tableHeader">
+                  <TableCell>ORDER</TableCell>
+                  <TableCell>CUSTOMER</TableCell>
+                  <TableCell>DATE</TableCell>
+                  <TableCell>ITEMS</TableCell>
+                  <TableCell>TOTAL</TableCell>
+                  <TableCell>STATUS</TableCell>
+                  <TableCell align="right">ACTIONS</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
-          component="div"
-          count={filteredRows.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-        />
+              </TableHead>
+              <TableBody>
+                {displayedRows.length > 0 ? (
+                  displayedRows.map((order) => (
+                    <TableRow
+                      key={order.id}
+                      hover
+                      className="tableRow"
+                    >
+                      <TableCell component="th" scope="row" className="orderIdCell">
+                        #{order.id.substring(0, 8).toUpperCase()}
+                      </TableCell>
+                      <TableCell>
+                        <div className="customerEmail">
+                          {order.customerDetails?.email || 'Guest User'}
+                          {order.isAnonymous && <span className="guestBadge">(Guest)</span>}
+                        </div>
+                      </TableCell>
+                      <TableCell>{order.date || 'N/A'}</TableCell>
+                      <TableCell>{order.items?.length || 0} items</TableCell>
+                      <TableCell className="totalCell">${order.total?.toFixed(2) || '0.00'}</TableCell>
+                      <TableCell>
+                        <Chip 
+                          label={getStatusLabel(order.status)}
+                          color={getStatusColor(order.status)}
+                          size="small"
+                          variant="outlined"
+                          className="statusChip"
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          startIcon={<ReceiptIcon />}
+                          onClick={() => handleViewOrder(order.id)}
+                          sx={{ mr: 1 }}
+                        >
+                          View
+                        </Button>
+                        {order.status === 'confirmed' && (
+                          <Button
+                            variant="contained"
+                            size="small"
+                            startIcon={<ShippingIcon />}
+                            onClick={() => {}}
+                            color="primary"
+                          >
+                            Ship
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <SearchIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+                        <Typography variant="body1" color="textSecondary">
+                          No orders found
+                        </Typography>
+                        <Typography variant="body2" color="textSecondary">
+                          Try adjusting your search or filter criteria
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
       </Paper>
     </Box>
   );

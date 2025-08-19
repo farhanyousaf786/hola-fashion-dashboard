@@ -1,222 +1,184 @@
-import React from 'react';
-import { 
-  Box, 
-  Grid, 
-  Paper, 
-  Typography, 
-  Card, 
-  CardContent,
-  List,
-  ListItem,
-  ListItemText,
-  Divider
+import React, { useEffect, useState } from 'react';
+import {
+  collection,
+  getDocs,
+  query,
+  orderBy
+} from 'firebase/firestore';
+import { db } from '../../firebase/firebase';
+import {
+  Box,
+  Typography,
+  Paper,
+  Grid,
+  CircularProgress,
+  Chip,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
 } from '@mui/material';
-import { 
-  TrendingUp, 
-  ShoppingBag, 
-  AttachMoney, 
-  People 
-} from '@mui/icons-material';
-import { Chart as ChartJS, ArcElement, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
-import { Line, Doughnut } from 'react-chartjs-2';
 
-// Register ChartJS components
-ChartJS.register(ArcElement, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
+import './Overview.css';
 const Overview = () => {
-  // Sample data for charts
-  const salesData = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-    datasets: [
-      {
-        label: 'Sales',
-        data: [12, 19, 3, 5, 2, 3],
-        borderColor: 'rgb(75, 192, 192)',
-        backgroundColor: 'rgba(75, 192, 192, 0.5)',
-      },
-    ],
-  };
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const categoryData = {
-    labels: ['Dresses', 'Tops', 'Pants', 'Accessories', 'Shoes'],
-    datasets: [
-      {
-        label: 'Sales by Category',
-        data: [12, 19, 3, 5, 2],
-        backgroundColor: [
-          'rgba(255, 99, 132, 0.5)',
-          'rgba(54, 162, 235, 0.5)',
-          'rgba(255, 206, 86, 0.5)',
-          'rgba(75, 192, 192, 0.5)',
-          'rgba(153, 102, 255, 0.5)',
-        ],
-        borderColor: [
-          'rgba(255, 99, 132, 1)',
-          'rgba(54, 162, 235, 1)',
-          'rgba(255, 206, 86, 1)',
-          'rgba(75, 192, 192, 1)',
-          'rgba(153, 102, 255, 1)',
-        ],
-        borderWidth: 1,
-      },
-    ],
-  };
+  // Fetch all orders (same as in Orders.js)
+  useEffect(() => {
+    const fetchAllOrders = async () => {
+      const ordersList = [];
 
-  // Sample recent orders
-  const recentOrders = [
-    { id: '#ORD-001', customer: 'John Doe', date: '2025-07-29', amount: '$120.00', status: 'Delivered' },
-    { id: '#ORD-002', customer: 'Jane Smith', date: '2025-07-28', amount: '$85.50', status: 'Processing' },
-    { id: '#ORD-003', customer: 'Robert Johnson', date: '2025-07-27', amount: '$210.75', status: 'Shipped' },
-    { id: '#ORD-004', customer: 'Emily Davis', date: '2025-07-26', amount: '$45.99', status: 'Delivered' },
-  ];
+      // 1. Root orders
+      const rootOrdersRef = collection(db, 'orders');
+      const rootSnapshot = await getDocs(query(rootOrdersRef, orderBy('createdAt', 'desc')));
+      rootSnapshot.forEach(doc => {
+        const data = doc.data();
+        ordersList.push({ id: doc.id, ...data });
+      });
+
+      // 2. User orders
+      const usersRef = collection(db, 'users');
+      const usersSnapshot = await getDocs(usersRef);
+      for (const userDoc of usersSnapshot.docs) {
+        const userOrdersRef = collection(db, 'users', userDoc.id, 'orders');
+        const userOrdersSnapshot = await getDocs(userOrdersRef);
+        userOrdersSnapshot.forEach(orderDoc => {
+          const data = orderDoc.data();
+          ordersList.push({ id: orderDoc.id, ...data });
+        });
+      }
+
+      // 3. Anonymous orders
+      const anonRef = collection(db, 'anonymousOrders');
+      const anonSnapshot = await getDocs(anonRef);
+      for (const anonDoc of anonSnapshot.docs) {
+        const anonOrdersRef = collection(db, 'anonymousOrders', anonDoc.id, 'orders');
+        const anonOrdersSnapshot = await getDocs(anonOrdersRef);
+        anonOrdersSnapshot.forEach(orderDoc => {
+          const data = orderDoc.data();
+          ordersList.push({ id: orderDoc.id, ...data });
+        });
+      }
+
+      setOrders(ordersList);
+      setLoading(false);
+    };
+
+    fetchAllOrders();
+  }, []);
+
+  // === Metrics Calculations ===
+  const totalOrders = orders.length;
+  const totalRevenue = orders.reduce((sum, order) => sum + (order.total || 0), 0);
+  const avgOrderValue = totalOrders > 0 ? (totalRevenue / totalOrders).toFixed(2) : 0;
+
+  const statusCounts = orders.reduce((acc, order) => {
+    const status = order.status || 'unknown';
+    acc[status] = (acc[status] || 0) + 1;
+    return acc;
+  }, {});
+
+  const latestOrders = [...orders]
+    .sort((a, b) => {
+      const dateA = a.createdAt?.toDate?.() || new Date(0);
+      const dateB = b.createdAt?.toDate?.() || new Date(0);
+      return dateB - dateA;
+    })
+    .slice(0, 5);
 
   return (
-    <Box>
+    <Box p={3}>
       <Typography variant="h4" gutterBottom>
-        Overview
+        Orders Overview
       </Typography>
-      
-      {/* Stats Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Paper elevation={3} sx={{ p: 2, display: 'flex', alignItems: 'center' }}>
-            <ShoppingBag sx={{ fontSize: 40, color: 'primary.main', mr: 2 }} />
-            <Box>
-              <Typography variant="h6" component="div">
-                Total Orders
-              </Typography>
-              <Typography variant="h4" component="div">
-                156
-              </Typography>
-            </Box>
-          </Paper>
-        </Grid>
-        
-        <Grid item xs={12} sm={6} md={3}>
-          <Paper elevation={3} sx={{ p: 2, display: 'flex', alignItems: 'center' }}>
-            <AttachMoney sx={{ fontSize: 40, color: 'success.main', mr: 2 }} />
-            <Box>
-              <Typography variant="h6" component="div">
-                Revenue
-              </Typography>
-              <Typography variant="h4" component="div">
-                $12,846
-              </Typography>
-            </Box>
-          </Paper>
-        </Grid>
-        
-        <Grid item xs={12} sm={6} md={3}>
-          <Paper elevation={3} sx={{ p: 2, display: 'flex', alignItems: 'center' }}>
-            <People sx={{ fontSize: 40, color: 'info.main', mr: 2 }} />
-            <Box>
-              <Typography variant="h6" component="div">
-                Customers
-              </Typography>
-              <Typography variant="h4" component="div">
-                89
-              </Typography>
-            </Box>
-          </Paper>
-        </Grid>
-        
-        <Grid item xs={12} sm={6} md={3}>
-          <Paper elevation={3} sx={{ p: 2, display: 'flex', alignItems: 'center' }}>
-            <TrendingUp sx={{ fontSize: 40, color: 'warning.main', mr: 2 }} />
-            <Box>
-              <Typography variant="h6" component="div">
-                Growth
-              </Typography>
-              <Typography variant="h4" component="div">
-                +24%
-              </Typography>
-            </Box>
-          </Paper>
-        </Grid>
-      </Grid>
-      
-      {/* Charts */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={8}>
-          <Paper elevation={3} sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Sales History
-            </Typography>
-            <Line 
-              data={salesData} 
-              options={{
-                responsive: true,
-                plugins: {
-                  legend: {
-                    position: 'top',
-                  },
-                  title: {
-                    display: true,
-                    text: 'Monthly Sales'
-                  }
-                }
-              }} 
-            />
-          </Paper>
-        </Grid>
-        
-        <Grid item xs={12} md={4}>
-          <Paper elevation={3} sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Sales by Category
-            </Typography>
-            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-              <Box sx={{ maxWidth: 300 }}>
-                <Doughnut data={categoryData} />
-              </Box>
-            </Box>
-          </Paper>
-        </Grid>
-      </Grid>
-      
-      {/* Recent Orders */}
-      <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Recent Orders
-              </Typography>
-              <List>
-                {recentOrders.map((order, index) => (
-                  <React.Fragment key={order.id}>
-                    <ListItem>
-                      <Grid container spacing={2}>
-                        <Grid item xs={3}>
-                          <ListItemText primary={order.id} secondary={order.date} />
-                        </Grid>
-                        <Grid item xs={3}>
-                          <ListItemText primary={order.customer} />
-                        </Grid>
-                        <Grid item xs={3}>
-                          <ListItemText primary={order.amount} />
-                        </Grid>
-                        <Grid item xs={3}>
-                          <ListItemText 
-                            primary={order.status} 
-                            primaryTypographyProps={{ 
-                              color: 
-                                order.status === 'Delivered' ? 'success.main' : 
-                                order.status === 'Processing' ? 'warning.main' : 
-                                'info.main'
-                            }} 
-                          />
-                        </Grid>
-                      </Grid>
-                    </ListItem>
-                    {index < recentOrders.length - 1 && <Divider />}
-                  </React.Fragment>
+
+      {loading ? (
+        <CircularProgress />
+      ) : (
+        <>
+          {/* Metrics Grid */}
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={3}>
+              <Paper elevation={2} className="summaryCard">
+                <Typography variant="subtitle1">Total Orders</Typography>
+                <Typography variant="h5">{totalOrders}</Typography>
+              </Paper>
+            </Grid>
+
+            <Grid item xs={12} md={3}>
+              <Paper elevation={2} className="summaryCard">
+                <Typography variant="subtitle1">Total Revenue</Typography>
+                <Typography variant="h5">${totalRevenue.toFixed(2)}</Typography>
+              </Paper>
+            </Grid>
+
+            <Grid item xs={12} md={3}>
+              <Paper elevation={2} className="summaryCard">
+                <Typography variant="subtitle1">Average Order Value</Typography>
+                <Typography variant="h5">${avgOrderValue}</Typography>
+              </Paper>
+            </Grid>
+
+            <Grid item xs={12} md={3}>
+              <Paper elevation={2} className="summaryCard">
+                <Typography variant="subtitle1">Orders by Status</Typography>
+                {Object.keys(statusCounts).map((status) => (
+                  <Chip
+                    key={status}
+                    label={`${status}: ${statusCounts[status]}`}
+                    sx={{ m: 0.5 }}
+                    color="primary"
+                    variant="outlined"
+                  />
                 ))}
-              </List>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+              </Paper>
+            </Grid>
+          </Grid>
+
+          {/* Latest Orders Table */}
+          <Box mt={4}>
+            <Typography variant="h6" gutterBottom>
+              Latest Orders
+            </Typography>
+            <Paper elevation={1}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Order ID</TableCell>
+                    <TableCell>Customer</TableCell>
+                    <TableCell>Date</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Total</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {latestOrders.map((order) => (
+                    <TableRow key={order.id}>
+                      <TableCell>#{order.id.slice(0, 8).toUpperCase()}</TableCell>
+                      <TableCell>{order.customerDetails?.email || 'Guest'}</TableCell>
+                      <TableCell>
+                        {order.createdAt?.toDate?.().toLocaleDateString() || 'N/A'}
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={order.status}
+                          color="default"
+                          size="small"
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell>${order.total?.toFixed(2) || '0.00'}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Paper>
+          </Box>
+        </>
+      )}
     </Box>
   );
 };

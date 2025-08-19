@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import './ItemsPage.css';
 import ItemCard from './components/ItemCard';
 import AddItemDialog from './components/AddItemDialog';
-import { getAllItems, deleteItem } from '../../firebase/services/itemService';
+import { getAllItems, deleteItem, getItemsByHeaderCategory } from '../../firebase/services/itemService';
+import { HEADER_CATEGORIES } from '../../models/ItemModel';
+import { FormControl, InputLabel, Select, MenuItem, Box } from '@mui/material';
 import { bulkUploadSampleItems } from '../../utils/bulkUploadItems';
 
 const ItemsPage = () => {
@@ -15,18 +17,25 @@ const ItemsPage = () => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [bulkUploading, setBulkUploading] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
-  // Fetch items from Firebase when component mounts
+  // Fetch items from Firebase when component mounts or category changes
   useEffect(() => {
     fetchItems();
-  }, []);
+  }, [selectedCategory]);
 
   const fetchItems = async () => {
     setLoading(true);
     setError(null);
     try {
-      // Fetch items from Firebase
-      const fetchedItems = await getAllItems();
+      let fetchedItems;
+      if (selectedCategory && selectedCategory !== 'all') {
+        // Fetch items by header category if a category is selected
+        fetchedItems = await getItemsByHeaderCategory(selectedCategory);
+      } else {
+        // Otherwise fetch all items
+        fetchedItems = await getAllItems();
+      }
       setItems(fetchedItems);
       console.log('Fetched items from Firebase:', fetchedItems);
     } catch (error) {
@@ -115,7 +124,26 @@ const ItemsPage = () => {
       <div className="items-page-container">
         <div className="items-page-header">
           <h1 className="items-page-title">Items</h1>
-          <div className="header-buttons">
+          <div className="header-buttons" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <Box sx={{ minWidth: 200 }}>
+              <FormControl fullWidth size="small">
+                <InputLabel id="category-filter-label">Category</InputLabel>
+                <Select
+                  labelId="category-filter-label"
+                  id="category-filter"
+                  value={selectedCategory}
+                  label="Category"
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                >
+                  <MenuItem value="all">All Categories</MenuItem>
+                  {HEADER_CATEGORIES.map((category) => (
+                    <MenuItem key={category.value} value={category.value}>
+                      {category.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
             {/* <button 
               className="bulk-upload-button"
               onClick={handleBulkUpload}

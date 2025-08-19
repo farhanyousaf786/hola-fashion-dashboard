@@ -1,0 +1,224 @@
+/* Modern macOS-inspired Dashboard */
+:root {
+  --primary: #007AFF;
+  --success: #34C759;
+  --warning: #FF9500;
+  --danger: #FF3B30;
+  --text-primary: #1D1D1F;
+  --text-secondary: #86868B;
+  --background: #F5F5F7;
+  --surface: #FFFFFF;
+  --border: #D1D1D6;
+  --hover: rgba(0, 0, 0, 0.03);
+}
+
+/* Base Layout */
+.dashboard-container {
+  padding: 20px;
+  background-color: var(--background);
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Cards */
+.summaryCard {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.summaryCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.summaryCard h5 {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-bottom: 8px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.summaryCard h3 {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.2;
+}
+
+/* Table Styling */
+.MuiTable-root {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--surface);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.MuiTableHead-root {
+  background-color: #FAFAFA;
+}
+
+.MuiTableCell-head {
+  color: var(--text-secondary) !important;
+  font-weight: 600 !important;
+  font-size: 0.75rem !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border) !important;
+  padding: 12px 16px !important;
+  background-color: #FAFAFA !important;
+}
+
+.MuiTableCell-body {
+  color: var(--text-primary) !important;
+  font-size: 0.875rem !important;
+  padding: 14px 16px !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.03) !important;
+}
+
+.MuiTableRow-root:hover {
+  background-color: var(--hover) !important;
+}
+
+/* Status Chips */
+.MuiChip-root {
+  height: 24px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: capitalize;
+  border-radius: 6px;
+}
+
+.MuiChip-outlined {
+  border-width: 1px !important;
+}
+
+/* Layout */
+.MuiGrid-container {
+  margin-top: 0;
+  width: calc(100% + 16px);
+  margin-left: -8px;
+  margin-right: -8px;
+}
+
+.MuiGrid-item {
+  padding: 8px !important;
+}
+
+/* Section Headers */
+.section-header {
+  margin: 32px 0 16px 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.section-header h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* Status Colors */
+.status-confirmed {
+  background-color: rgba(0, 122, 255, 0.1) !important;
+  color: var(--primary) !important;
+  border-color: rgba(0, 122, 255, 0.3) !important;
+}
+
+.status-processing {
+  background-color: rgba(255, 149, 0, 0.1) !important;
+  color: var(--warning) !important;
+  border-color: rgba(255, 149, 0, 0.3) !important;
+}
+
+.status-shipped {
+  background-color: rgba(0, 199, 190, 0.1) !important;
+  color: #00C7BE !important;
+  border-color: rgba(0, 199, 190, 0.3) !important;
+}
+
+.status-delivered {
+  background-color: rgba(52, 199, 89, 0.1) !important;
+  color: var(--success) !important;
+  border-color: rgba(52, 199, 89, 0.3) !important;
+}
+
+.status-cancelled {
+  background-color: rgba(255, 59, 48, 0.1) !important;
+  color: var(--danger) !important;
+  border-color: rgba(255, 59, 48, 0.3) !important;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.MuiPaper-root {
+  animation: fadeIn 0.3s ease-out forwards;
+  opacity: 0;
+  animation-delay: calc(var(--animation-order) * 0.05s);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 900px) {
+  .dashboard-container {
+    padding: 12px;
+  }
+  
+  .MuiGrid-container {
+    width: 100%;
+    margin: 0;
+  }
+  
+  .MuiGrid-item {
+    padding: 6px !important;
+  }
+  
+  .summaryCard h3 {
+    font-size: 1.4rem;
+  }
+}
+.status-badge.delivered { background: #e8f5e9; color: #2e7d32; }
+.status-badge.cancelled { background: #ffebee; color: #d32f2f; }
