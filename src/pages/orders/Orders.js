@@ -145,36 +145,30 @@ const Orders = () => {
         console.error('Error fetching user orders:', error);
       }
 
-      // 3. Get all anonymous orders
+      // 3. Get all anonymous orders (each document in 'anonymousOrders' is an order)
       try {
         console.log('Fetching anonymous orders...');
         const anonOrdersRef = collection(db, 'anonymousOrders');
         const anonOrdersSnapshot = await getDocs(anonOrdersRef);
-        
-        for (const anonDoc of anonOrdersSnapshot.docs) {
-          const anonUserOrdersRef = collection(db, 'anonymousOrders', anonDoc.id, 'orders');
-          const anonUserOrdersQuery = query(anonUserOrdersRef, orderBy('createdAt', 'desc'));
-          const anonUserOrdersSnapshot = await getDocs(anonUserOrdersQuery);
-          
-          anonUserOrdersSnapshot.forEach((orderDoc) => {
-            try {
-              const data = orderDoc.data();
-              const orderDate = data.createdAt?.toDate?.();
-              ordersList.push({
-                id: orderDoc.id,
-                ...data,
-                date: orderDate ? orderDate.toLocaleDateString() : 'N/A',
-                customer: data.customerDetails?.email || 'Guest User',
-                total: data.total || 0,
-                status: data.status || 'pending',
-                isAnonymous: true,
-                source: `anon_${anonDoc.id}`
-              });
-            } catch (error) {
-              console.error('Error processing anonymous order:', error);
-            }
-          });
-        }
+
+        anonOrdersSnapshot.forEach((docSnap) => {
+          try {
+            const data = docSnap.data();
+            const orderDate = data.createdAt?.toDate?.();
+            ordersList.push({
+              id: docSnap.id,
+              ...data,
+              date: orderDate ? orderDate.toLocaleDateString() : 'N/A',
+              customer: 'Anonymous order',
+              total: data.total || 0,
+              status: data.status || 'pending',
+              isAnonymous: true,
+              source: 'anon_root'
+            });
+          } catch (error) {
+            console.error('Error processing anonymous root order:', error);
+          }
+        });
       } catch (error) {
         console.error('Error fetching anonymous orders:', error);
       }
@@ -342,8 +336,17 @@ const Orders = () => {
                       </TableCell>
                       <TableCell>
                         <div className="customerEmail">
-                          {order.customerDetails?.email || 'Guest User'}
-                          {order.isAnonymous && <span className="guestBadge">(Guest)</span>}
+                          {order.isAnonymous
+                            ? 'Anonymous order'
+                            : (order.customerDetails?.email || 'Guest User')}
+                          {order.isAnonymous && (
+                            <Chip
+                              size="small"
+                              label="Anonymous"
+                              variant="outlined"
+                              sx={{ ml: 1 }}
+                            />
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>{order.date || 'N/A'}</TableCell>

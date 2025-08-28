@@ -17,6 +17,7 @@ import {
   AddCircle as AddItemIcon,
   Inventory as AllItemsIcon,
   Person as ProfileIcon,
+  People as UsersIcon,
 } from '@mui/icons-material';
 
 const drawerWidth = 240;
@@ -25,6 +26,7 @@ const menuItems = [
   { text: 'Overview', icon: <DashboardIcon />, path: '/' },
   { text: 'Orders', icon: <OrdersIcon />, path: '/orders' },
   { text: 'Inventory', icon: <AllItemsIcon />, path: '/all-items' },
+  { text: 'Users', icon: <UsersIcon />, path: '/users' },
   { text: 'Profile', icon: <ProfileIcon />, path: '/profile' },
 ];
 
@@ -39,7 +41,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
             <ListItemButton
               component={Link}
               to={item.path}
-              selected={location.pathname === item.path}
+              selected={location.pathname === item.path || location.pathname.startsWith(item.path + '/')}
               sx={{
                 '&.Mui-selected': {
                   backgroundColor: 'primary.light',

@@ -51,17 +51,13 @@ const Overview = () => {
         });
       }
 
-      // 3. Anonymous orders
+      // 3. Anonymous orders (root collection where each doc is an order)
       const anonRef = collection(db, 'anonymousOrders');
       const anonSnapshot = await getDocs(anonRef);
-      for (const anonDoc of anonSnapshot.docs) {
-        const anonOrdersRef = collection(db, 'anonymousOrders', anonDoc.id, 'orders');
-        const anonOrdersSnapshot = await getDocs(anonOrdersRef);
-        anonOrdersSnapshot.forEach(orderDoc => {
-          const data = orderDoc.data();
-          ordersList.push({ id: orderDoc.id, ...data });
-        });
-      }
+      anonSnapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        ordersList.push({ id: docSnap.id, ...data, isAnonymous: true });
+      });
 
       setOrders(ordersList);
       setLoading(false);
@@ -158,7 +154,16 @@ const Overview = () => {
                   {latestOrders.map((order) => (
                     <TableRow key={order.id}>
                       <TableCell>#{order.id.slice(0, 8).toUpperCase()}</TableCell>
-                      <TableCell>{order.customerDetails?.email || 'Guest'}</TableCell>
+                      <TableCell>
+                        {order.isAnonymous ? (
+                          <>
+                            Anonymous order{' '}
+                            <Chip size="small" label="Anonymous" variant="outlined" sx={{ ml: 1 }} />
+                          </>
+                        ) : (
+                          order.customerDetails?.email || 'Guest'
+                        )}
+                      </TableCell>
                       <TableCell>
                         {order.createdAt?.toDate?.().toLocaleDateString() || 'N/A'}
                       </TableCell>
