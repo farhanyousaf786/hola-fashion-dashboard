@@ -123,7 +123,14 @@ const UserDetail = () => {
         {orders.map((o) => (
           <Grid item key={o.id} xs={12} md={6} lg={4}>
             <Card>
-              <CardActionArea onClick={() => navigate(`/users/${uid}/orders/${o.id}`)}>
+              <CardActionArea onClick={() => {
+                // For non-anonymous users, include the user ID in the URL
+                const isAnonymous = !o.userId && !o.customerDetails?.id;
+                const path = isAnonymous 
+                  ? `/orderdetail/${o.id}`
+                  : `/users/${uid}/orders/${o.id}`;
+                navigate(path);
+              }}>
               <CardContent>
                 <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
                   <Typography variant="subtitle1" fontWeight={600}>#{o.id.slice(0, 6)}</Typography>

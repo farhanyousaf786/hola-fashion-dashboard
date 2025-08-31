@@ -14,7 +14,7 @@ import ItemsPage from './pages/items_page/ItemsPage';
 import Profile from './pages/profile/Profile';
 import UsersList from './pages/users/UsersList';
 import UserDetail from './pages/users/UserDetail';
-import OrderDetail from './pages/users/OrderDetail';
+import OrderDetail from './pages/orders/order_detail/OrderDetail';
 
 // Import Firebase and Auth context
 import './firebase/firebase';
@@ -176,7 +176,11 @@ const AuthenticatedApp = () => {
           <Route path="/all-items" element={<ItemsPage />} />
           <Route path="/users" element={<UsersList />} />
           <Route path="/users/:uid" element={<UserDetail />} />
+          {/* Order detail route with optional uid parameter */}
+          <Route path="/orderdetail/:orderId" element={<OrderDetail />} />
           <Route path="/users/:uid/orders/:orderId" element={<OrderDetail />} />
+          {/* Add a catch-all route for order details */}
+          <Route path="/orders/:orderId" element={<OrderDetail />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

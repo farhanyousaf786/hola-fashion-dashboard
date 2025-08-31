@@ -218,8 +218,14 @@ const Orders = () => {
     page * rowsPerPage + rowsPerPage
   );
 
-  const handleViewOrder = (orderId) => {
-    navigate(`/orders/${orderId}`);
+  const handleViewOrder = (order, e) => {
+    // Prevent the click from bubbling up to the row
+    e && e.stopPropagation();
+    navigate(`/orderdetail/${order.id}`);
+  };
+
+  const handleRowClick = (order) => {
+    navigate(`/orderdetail/${order.id}`);
   };
 
 
@@ -320,7 +326,7 @@ const Orders = () => {
                   <TableCell>ITEMS</TableCell>
                   <TableCell>TOTAL</TableCell>
                   <TableCell>STATUS</TableCell>
-                  <TableCell align="right">ACTIONS</TableCell>
+                  <TableCell align="right">DETAILS</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -330,6 +336,8 @@ const Orders = () => {
                       key={order.id}
                       hover
                       className="tableRow"
+                      onClick={() => handleRowClick(order)}
+                      sx={{ cursor: 'pointer' }}
                     >
                       <TableCell component="th" scope="row" className="orderIdCell">
                         #{order.id.substring(0, 8).toUpperCase()}
@@ -366,22 +374,17 @@ const Orders = () => {
                           variant="outlined"
                           size="small"
                           startIcon={<ReceiptIcon />}
-                          onClick={() => handleViewOrder(order.id)}
-                          sx={{ mr: 1 }}
+                          onClick={(e) => handleViewOrder(order, e)}
+                          sx={{ 
+                            mr: 1,
+                            '&:hover': {
+                              backgroundColor: 'primary.main',
+                              color: 'white',
+                            }
+                          }}
                         >
-                          View
+                          View Details
                         </Button>
-                        {order.status === 'confirmed' && (
-                          <Button
-                            variant="contained"
-                            size="small"
-                            startIcon={<ShippingIcon />}
-                            onClick={() => {}}
-                            color="primary"
-                          >
-                            Ship
-                          </Button>
-                        )}
                       </TableCell>
                     </TableRow>
                   ))
