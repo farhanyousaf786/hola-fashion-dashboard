@@ -15,6 +15,7 @@ import Profile from './pages/profile/Profile';
 import UsersList from './pages/users/UsersList';
 import UserDetail from './pages/users/UserDetail';
 import OrderDetail from './pages/orders/order_detail/OrderDetail';
+import ShippingPage from './pages/orders/order_detail/shipping/ShippingPage';
 
 // Import Firebase and Auth context
 import './firebase/firebase';
@@ -181,6 +182,7 @@ const AuthenticatedApp = () => {
           <Route path="/users/:uid/orders/:orderId" element={<OrderDetail />} />
           {/* Add a catch-all route for order details */}
           <Route path="/orders/:orderId" element={<OrderDetail />} />
+          <Route path="/orders/:orderId/shipping" element={<ShippingPage />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
