@@ -30,7 +30,24 @@ if (process.env.NODE_ENV === 'production') {
   // Set static folder
   app.use(express.static(path.join(__dirname, '../build')));
 
-  app.get('*', (req, res) => {
+  // Handle React routes without wildcards
+  app.get('/', (req, res) => {
+    res.sendFile(path.resolve(__dirname, '../build', 'index.html'));
+  });
+  
+  app.get('/orders', (req, res) => {
+    res.sendFile(path.resolve(__dirname, '../build', 'index.html'));
+  });
+  
+  app.get('/orders/:id', (req, res) => {
+    res.sendFile(path.resolve(__dirname, '../build', 'index.html'));
+  });
+  
+  app.get('/orders/:id/shipping', (req, res) => {
+    res.sendFile(path.resolve(__dirname, '../build', 'index.html'));
+  });
+  
+  app.get('/items', (req, res) => {
     res.sendFile(path.resolve(__dirname, '../build', 'index.html'));
   });
 }
