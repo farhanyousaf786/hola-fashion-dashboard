@@ -8,7 +8,7 @@ import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import { db } from '../../../firebase/firebase';
 import { doc, getDoc, collection, getDocs, updateDoc } from 'firebase/firestore';
 
-const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:5000';
+const API_BASE = process.env.NODE_ENV === 'production' ? '' : (process.env.REACT_APP_API_BASE || 'http://localhost:3001');
 
 const defaultFromAddress = {
   name: 'Warehouse',
