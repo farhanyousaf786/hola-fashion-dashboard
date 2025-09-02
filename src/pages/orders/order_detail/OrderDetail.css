@@ -10,6 +10,16 @@
   margin: 0 auto;
 }
 
+/* Top actions container for header-level buttons */
+.top-actions {
+  display: flex;
+  justify-content: flex-start;
+  gap: 12px;
+  margin-top: 12px;
+  margin-bottom: 12px;
+  color: #d56060;
+}
+
 .back-button {
   background: rgba(255, 255, 255, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.3);
@@ -287,6 +297,17 @@
   background: #e74c3c;
   color: white;
   transform: translateY(-2px);
+}
+
+/* Blue variant for primary button */
+.btn-primary--blue {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #ffffff;
+}
+
+.btn-primary--blue:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(37, 99, 235, 0.3);
 }
 
 .loading-container {

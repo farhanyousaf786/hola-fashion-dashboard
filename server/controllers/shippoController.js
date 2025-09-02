@@ -93,16 +93,31 @@ async function getRates(req, res) {
 }
 
 // Purchase a label from a rate
-// Expects body: { rate: rateObject } OR { rate_id }
+// Expects body: { rate: rateObject | rateIdString } OR { rate_id }
 async function buyLabel(req, res) {
   try {
     const apiKey = requireEnv('SHIPPO_API_KEY');
-    const { rate, rate_id } = req.body || {};
+    const { rate, rate_id, label_file_type } = req.body || {};
 
-    const payload = rate ? { rate } : rate_id ? { rate: rate_id } : null;
-    if (!payload) {
+    // Normalize to a rate ID string for Shippo
+    let rateId = null;
+    if (typeof rate === 'string') {
+      rateId = rate;
+    } else if (rate && typeof rate === 'object' && rate.object_id) {
+      rateId = rate.object_id;
+    } else if (rate_id) {
+      rateId = rate_id;
+    }
+
+    if (!rateId) {
       return res.status(400).json({ error: 'rate or rate_id required' });
     }
+
+    const payload = {
+      rate: rateId,
+      label_file_type: label_file_type || 'PDF',
+      async: false,
+    };
 
     const response = await fetch(`${SHIPPO_API_BASE}/transactions`, {
       method: 'POST',
@@ -118,14 +133,27 @@ async function buyLabel(req, res) {
       return res.status(response.status).json({ error: data?.detail || 'Failed to buy label', raw: data });
     }
 
+    // Shippo may return 200 with status ERROR and empty label fields.
+    if (data?.status && data.status !== 'SUCCESS') {
+      const messages = Array.isArray(data.messages) ? data.messages.map(m => m.text || m.message).filter(Boolean) : [];
+      return res.status(422).json({
+        error: 'Shippo could not create the label',
+        status: data.status,
+        messages,
+        transaction: data,
+      });
+    }
+
+    // Success path
     return res.json({
       transaction: data,
-      label_url: data?.label_url,
-      tracking_number: data?.tracking_number,
-      tracking_url_provider: data?.tracking_url_provider,
-      carrier: data?.rate?.provider,
-      servicelevel: data?.rate?.servicelevel?.name,
-      amount: data?.rate?.amount
+      label_url: data?.label_url || null,
+      tracking_number: data?.tracking_number || null,
+      tracking_url_provider: data?.tracking_url_provider || null,
+      // Do not assume expanded rate object; client can fall back to its local rate for display
+      carrier: data?.rate?.provider || null,
+      servicelevel: data?.rate?.servicelevel?.name || null,
+      amount: data?.rate?.amount || null,
     });
   } catch (e) {
     console.error('Shippo buyLabel error:', e);

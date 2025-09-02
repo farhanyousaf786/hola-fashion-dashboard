@@ -255,6 +255,8 @@ const OrderDetail = () => {
           ← Back to Orders
         </button>
 
+      
+
         {/* Order Header */}
         <div className="order-header">
           <div className="order-title">
@@ -263,15 +265,25 @@ const OrderDetail = () => {
           <div className="order-subtitle">
             Placed on {formatDate(order.createdAt)}
           </div>
-          
+            {/* Top Actions */}
+        <div className="top-actions">
+          <button
+            className="btn btn-primary btn-primary--blue"
+            onClick={() => navigate(`/orders/${orderId}/shipping`)}
+          >
+            🚚 Manage Shipping
+          </button>
+        </div>
           <div className="order-meta">
             <div className={`status-chip ${getStatusClass(order.status)}`}>
               {order.status || 'pending'}
             </div>
+            
             <div className="order-total">
               <div className="total-amount">{currency(orderTotal)}</div>
               <div className="total-items">{order.items?.length || 0} items</div>
             </div>
+            
           </div>
         </div>
 
@@ -456,21 +468,7 @@ const OrderDetail = () => {
               </div>
             )}
 
-            {/* Action Buttons */}
-            <div className="action-buttons">
-              <button 
-                className="btn btn-outline"
-                onClick={() => window.print()}
-              >
-                🖨️ Print
-              </button>
-              <button 
-                className="btn btn-primary"
-                onClick={() => navigate(`/orders/${orderId}/shipping`)}
-              >
-                🚚 Manage Shipping
-              </button>
-            </div>
+            {/* Action Buttons - moved Manage Shipping to top; Print removed */}
           </div>
         </div>
       </div>

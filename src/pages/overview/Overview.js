@@ -1,26 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import {
-  collection,
-  getDocs,
-  query,
-  orderBy
-} from 'firebase/firestore';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '../../firebase/firebase';
-import {
-  Box,
-  Typography,
-  Paper,
-  Grid,
-  CircularProgress,
-  Chip,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-} from '@mui/material';
-
-
 import './Overview.css';
 const Overview = () => {
   const [orders, setOrders] = useState([]);
@@ -85,106 +65,108 @@ const Overview = () => {
     })
     .slice(0, 5);
 
+  // Helpers
+  const formatDate = (ts) => {
+    if (!ts) return 'N/A';
+    try {
+      const d = ts.toDate ? ts.toDate() : new Date(ts);
+      return d.toLocaleDateString();
+    } catch {
+      return 'N/A';
+    }
+  };
+
+  const currency = (n) => {
+    try {
+      return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(Number(n || 0));
+    } catch {
+      const num = Number(n || 0).toFixed(2);
+      return `$${num}`;
+    }
+  };
+
   return (
-    <Box p={3}>
-      <Typography variant="h4" gutterBottom>
-        Orders Overview
-      </Typography>
+    <div className="overview-container">
+      <div className="overview-content">
+        <div className="overview-header">
+          <h1>Orders Overview</h1>
+          <p className="muted">A quick snapshot of your store performance</p>
+        </div>
 
-      {loading ? (
-        <CircularProgress />
-      ) : (
-        <>
-          {/* Metrics Grid */}
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={3}>
-              <Paper elevation={2} className="summaryCard">
-                <Typography variant="subtitle1">Total Orders</Typography>
-                <Typography variant="h5">{totalOrders}</Typography>
-              </Paper>
-            </Grid>
-
-            <Grid item xs={12} md={3}>
-              <Paper elevation={2} className="summaryCard">
-                <Typography variant="subtitle1">Total Revenue</Typography>
-                <Typography variant="h5">${totalRevenue.toFixed(2)}</Typography>
-              </Paper>
-            </Grid>
-
-            <Grid item xs={12} md={3}>
-              <Paper elevation={2} className="summaryCard">
-                <Typography variant="subtitle1">Average Order Value</Typography>
-                <Typography variant="h5">${avgOrderValue}</Typography>
-              </Paper>
-            </Grid>
-
-            <Grid item xs={12} md={3}>
-              <Paper elevation={2} className="summaryCard">
-                <Typography variant="subtitle1">Orders by Status</Typography>
-                {Object.keys(statusCounts).map((status) => (
-                  <Chip
-                    key={status}
-                    label={`${status}: ${statusCounts[status]}`}
-                    sx={{ m: 0.5 }}
-                    color="primary"
-                    variant="outlined"
-                  />
-                ))}
-              </Paper>
-            </Grid>
-          </Grid>
-
-          {/* Latest Orders Table */}
-          <Box mt={4}>
-            <Typography variant="h6" gutterBottom>
-              Latest Orders
-            </Typography>
-            <Paper elevation={1}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Order ID</TableCell>
-                    <TableCell>Customer</TableCell>
-                    <TableCell>Date</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Total</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {latestOrders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell>#{order.id.slice(0, 8).toUpperCase()}</TableCell>
-                      <TableCell>
-                        {order.isAnonymous ? (
-                          <>
-                            Anonymous order{' '}
-                            <Chip size="small" label="Anonymous" variant="outlined" sx={{ ml: 1 }} />
-                          </>
-                        ) : (
-                          order.customerDetails?.email || 'Guest'
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {order.createdAt?.toDate?.().toLocaleDateString() || 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={order.status}
-                          color="default"
-                          size="small"
-                          variant="outlined"
-                        />
-                      </TableCell>
-                      <TableCell>${order.total?.toFixed(2) || '0.00'}</TableCell>
-                    </TableRow>
+        {loading ? (
+          <div className="loading">
+            <div className="loading-spinner" />
+          </div>
+        ) : (
+          <>
+            {/* Metrics */}
+            <div className="metrics-grid">
+              <div className="metric-card summaryCard">
+                <div className="metric-label">Total Orders</div>
+                <div className="metric-value">{totalOrders}</div>
+              </div>
+              <div className="metric-card summaryCard">
+                <div className="metric-label">Total Revenue</div>
+                <div className="metric-value">{currency(totalRevenue)}</div>
+              </div>
+              <div className="metric-card summaryCard">
+                <div className="metric-label">Avg. Order Value</div>
+                <div className="metric-value">{currency(avgOrderValue)}</div>
+              </div>
+              <div className="metric-card summaryCard">
+                <div className="metric-label">Orders by Status</div>
+                <div className="status-list">
+                  {Object.keys(statusCounts).map((status) => (
+                    <span key={status} className={`status-chip ${`status-${status.toLowerCase()}`}`}>
+                      {status}: {statusCounts[status]}
+                    </span>
                   ))}
-                </TableBody>
-              </Table>
-            </Paper>
-          </Box>
-        </>
-      )}
-    </Box>
+                </div>
+              </div>
+            </div>
+
+            {/* Latest Orders */}
+            <div className="section">
+              <div className="section-title">Latest Orders</div>
+              <div className="table-card">
+                <table className="latest-table">
+                  <thead>
+                    <tr>
+                      <th>Order ID</th>
+                      <th>Customer</th>
+                      <th>Date</th>
+                      <th>Status</th>
+                      <th style={{ textAlign: 'right' }}>Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {latestOrders.map((order) => (
+                      <tr key={order.id}>
+                        <td>#{order.id.slice(0, 8).toUpperCase()}</td>
+                        <td>
+                          {order.isAnonymous ? (
+                            <span className="badge badge-outline">Anonymous</span>
+                          ) : (
+                            order.customerDetails?.email || 'Guest'
+                          )}
+                        </td>
+                        <td>{formatDate(order.createdAt)}</td>
+                        <td>
+                          <span className={`status-badge ${order.status?.toLowerCase() || 'unknown'}`}>
+                            {order.status || 'unknown'}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>{currency(order.total)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
   );
 };
 

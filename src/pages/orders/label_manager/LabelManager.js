@@ -42,7 +42,7 @@ const LabelManager = ({ rate, onLabelPurchased, orderId }) => {
       const response = await fetch(`${API_BASE}/api/shippo/buy-label`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rate })
+        body: JSON.stringify({ rate_id: rate?.object_id || rate, label_file_type: 'PDF' })
       });
 
       const data = await response.json();
@@ -53,6 +53,9 @@ const LabelManager = ({ rate, onLabelPurchased, orderId }) => {
       }
 
       setLabelData(data);
+      if (data.label_url) {
+        setShowPreview(true);
+      }
       
       // Notify parent component
       if (onLabelPurchased) {
@@ -95,7 +98,7 @@ const LabelManager = ({ rate, onLabelPurchased, orderId }) => {
 
   if (labelData) {
     return (
-      <Card variant="outlined" sx={{ mt: 2, bgcolor: 'success.light', color: 'success.contrastText' }}>
+      <Card variant="outlined" sx={{ mt: 2, bgcolor: 'background.paper', color: 'text.primary' }}>
         <CardContent>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
             <CheckCircleIcon sx={{ mr: 1 }} />
@@ -104,20 +107,20 @@ const LabelManager = ({ rate, onLabelPurchased, orderId }) => {
           
           <Box sx={{ mb: 2 }}>
             <Typography variant="body2" gutterBottom>
-              <strong>Tracking Number:</strong> {labelData.tracking_number}
+              <strong>Tracking Number:</strong> {labelData.tracking_number || '—'}
             </Typography>
             <Typography variant="body2" gutterBottom>
-              <strong>Carrier:</strong> {labelData.carrier}
+              <strong>Carrier:</strong> {labelData.carrier || '—'}
             </Typography>
             <Typography variant="body2" gutterBottom>
-              <strong>Service:</strong> {labelData.servicelevel}
+              <strong>Service:</strong> {labelData.servicelevel || '—'}
             </Typography>
             <Typography variant="body2">
-              <strong>Cost:</strong> ${labelData.amount}
+              <strong>Cost:</strong> ${typeof labelData.amount === 'number' ? labelData.amount.toFixed(2) : (labelData.amount || '—')}
             </Typography>
           </Box>
 
-          <Divider sx={{ my: 2, bgcolor: 'success.contrastText', opacity: 0.3 }} />
+          <Divider sx={{ my: 2 }} />
 
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             <Button
@@ -126,6 +129,7 @@ const LabelManager = ({ rate, onLabelPurchased, orderId }) => {
               startIcon={<DownloadIcon />}
               onClick={downloadLabel}
               size="small"
+              disabled={!labelData?.label_url}
             >
               Download Label
             </Button>
@@ -134,7 +138,7 @@ const LabelManager = ({ rate, onLabelPurchased, orderId }) => {
               startIcon={<PrintIcon />}
               onClick={printLabel}
               size="small"
-              sx={{ color: 'success.contrastText', borderColor: 'success.contrastText' }}
+              disabled={!labelData?.label_url}
             >
               Print Label
             </Button>
@@ -143,7 +147,7 @@ const LabelManager = ({ rate, onLabelPurchased, orderId }) => {
               startIcon={<ViewIcon />}
               onClick={viewLabel}
               size="small"
-              sx={{ color: 'success.contrastText', borderColor: 'success.contrastText' }}
+              disabled={!labelData?.label_url}
             >
               View Label
             </Button>
@@ -153,7 +157,6 @@ const LabelManager = ({ rate, onLabelPurchased, orderId }) => {
                 startIcon={<ShippingIcon />}
                 onClick={() => window.open(labelData.tracking_url_provider, '_blank')}
                 size="small"
-                sx={{ color: 'success.contrastText', borderColor: 'success.contrastText' }}
               >
                 Track Package
               </Button>

@@ -172,15 +172,19 @@ const ShippingPage = () => {
 
   const updateOrderTracking = async (tracking) => {
     try {
+      // Remove undefined values to satisfy Firestore
+      const clean = Object.fromEntries(
+        Object.entries(tracking).filter(([_, v]) => v !== undefined)
+      );
       if (order.scope === 'user' && ownerUserId) {
         const ref = doc(db, 'users', ownerUserId, 'orders', orderId);
-        await updateDoc(ref, { shipping: { ...(order.shipping || {}), ...tracking } });
+        await updateDoc(ref, { shipping: { ...(order.shipping || {}), ...clean } });
       } else if (order.scope === 'root') {
         const ref = doc(db, 'orders', orderId);
-        await updateDoc(ref, { shipping: { ...(order.shipping || {}), ...tracking } });
+        await updateDoc(ref, { shipping: { ...(order.shipping || {}), ...clean } });
       } else if (order.scope === 'anonymous') {
         const ref = doc(db, 'anonymousOrders', orderId);
-        await updateDoc(ref, { shipping: { ...(order.shipping || {}), ...tracking } });
+        await updateDoc(ref, { shipping: { ...(order.shipping || {}), ...clean } });
       }
     } catch (e) {
       console.warn('Failed to persist tracking info:', e);
@@ -198,14 +202,21 @@ const ShippingPage = () => {
         body: JSON.stringify({ rate_id: rate.object_id || rate.objectId || rate.object || rate.id || rate })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || 'Failed to purchase label');
+      if (!res.ok) {
+        // Prefer detailed messages from backend (e.g., 422 with messages array)
+        const detail = Array.isArray(data?.messages) && data.messages.length
+          ? data.messages.join(', ')
+          : (data?.error || 'Failed to purchase label');
+        throw new Error(detail);
+      }
 
       const tracking = {
-        tracking_number: data.tracking_number,
-        tracking_url: data.tracking_url_provider,
-        carrier: data.carrier,
-        servicelevel: data.servicelevel,
-        label_url: data.label_url
+        tracking_number: data.tracking_number || null,
+        tracking_url: data.tracking_url_provider || null,
+        carrier: data.carrier || rate.provider || null,
+        servicelevel: data.servicelevel || (rate.servicelevel ? rate.servicelevel.name : null),
+        label_url: data.label_url || null,
+        amount: data.amount || rate.amount || null,
       };
       await updateOrderTracking(tracking);
       setSuccessMsg(`Label purchased. Tracking #${data.tracking_number}`);
