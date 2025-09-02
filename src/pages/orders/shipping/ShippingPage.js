@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { db } from '../../../firebase/firebase';
 import { doc, getDoc, collection, getDocs, updateDoc } from 'firebase/firestore';
-import LabelManager from '../../../components/LabelManager';
+import LabelManager from '../label_manager/LabelManager';
 import './ShippingPage.css';
 
 const API_BASE = process.env.NODE_ENV === 'production' ? '' : (process.env.REACT_APP_API_BASE || 'http://localhost:3001');

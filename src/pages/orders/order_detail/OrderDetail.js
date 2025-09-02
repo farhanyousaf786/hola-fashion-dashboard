@@ -1,107 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
 import { db } from '../../../firebase/firebase';
 import { getUserById } from '../../../firebase/services/userService';
-import {
-  Box,
-  Typography,
-  Button,
-  Divider,
-  Chip,
-  Grid,
-  Card,
-  CardContent,
-  CardHeader,
-  CardActions,
-  Avatar,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  CircularProgress,
-  styled,
-  useTheme
-} from '@mui/material';
-import {
-  ArrowBack as ArrowBackIcon,
-  LocalShipping as ShippingIcon,
-  Payment as PaymentIcon,
-  Person as PersonIcon,
-  Phone as PhoneIcon,
-  LocationOn as LocationIcon,
-  Receipt as ReceiptIcon,
-  Search as SearchIcon,
-  Print as PrintIcon,
-  Download as DownloadIcon,
-  Edit as EditIcon,
-  Image as ImageIcon
-} from '@mui/icons-material';
+import './OrderDetail.css';
 
-// Styled components
-const StatusChip = styled(Chip)(({ theme, status }) => ({
-  textTransform: 'capitalize',
-  fontWeight: 600,
-  backgroundColor: status === 'completed' 
-    ? theme.palette.success.light 
-    : status === 'cancelled' 
-      ? theme.palette.error.light 
-      : theme.palette.warning.light,
-  color: theme.palette.getContrastText(
-    status === 'completed' 
-      ? theme.palette.success.light 
-      : status === 'cancelled' 
-        ? theme.palette.error.light 
-        : theme.palette.warning.light
-  ),
-}));
-
-const OrderCard = styled(Card)(({ theme }) => ({
-  marginBottom: theme.spacing(3),
-  borderRadius: 12,
-  overflow: 'hidden',
-  boxShadow: theme.shadows[2],
-  '&:hover': {
-    boxShadow: theme.shadows[8],
-    transform: 'translateY(-2px)',
-    transition: 'all 0.3s ease-in-out',
-  },
-  transition: 'all 0.3s ease-in-out',
-}));
-
-const ProductImage = styled('img')({
-  width: 80,
-  height: 80,
-  objectFit: 'cover',
-  borderRadius: 8,
-  border: '1px solid #eee',
-});
-
-const SectionTitle = styled(Typography)(({ theme }) => ({
-  fontWeight: 600,
-  marginBottom: theme.spacing(2),
-  color: theme.palette.primary.main,
-  display: 'flex',
-  alignItems: 'center',
-  '& svg': {
-    marginRight: theme.spacing(1),
-  },
-}));
-
-const InfoRow = ({ icon: Icon, label, value }) => (
-  <Box sx={{ display: 'flex', mb: 1.5, alignItems: 'flex-start' }}>
-    <Icon color="action" sx={{ mr: 1.5, mt: 0.5, flexShrink: 0 }} />
-    <Box>
-      <Typography variant="caption" color="text.secondary" display="block">
-        {label}
-      </Typography>
-      <Typography variant="body2">{value || '-'}</Typography>
-    </Box>
-  </Box>
-);
+// Helper functions
+const getStatusClass = (status) => {
+  const statusLower = status?.toLowerCase();
+  if (statusLower === 'completed') return 'status-completed';
+  if (statusLower === 'cancelled') return 'status-cancelled';
+  return 'status-pending';
+};
 
 const formatDate = (ts) => {
   if (!ts) return '';
@@ -133,13 +43,11 @@ const OrderDetail = () => {
   // Memoized function to find which user has this order
   const findUserWithOrder = React.useCallback(async (orderId) => {
     try {
-      // First check if we have a uid in the URL
       if (uid && uid !== 'anonymous') {
         return uid;
       }
       
       console.log('Searching for order in user collections...');
-      // If not, try to find the user who has this order
       const usersRef = collection(db, 'users');
       const usersSnapshot = await getDocs(usersRef);
       
@@ -156,7 +64,7 @@ const OrderDetail = () => {
       console.warn('Error finding user with order:', e);
     }
     return null;
-  }, [uid]); // Only recreate when uid changes
+  }, [uid]);
 
   // Memoized function to fetch order from a specific user
   const fetchOrderFromUser = React.useCallback(async (userId) => {
@@ -195,103 +103,87 @@ const OrderDetail = () => {
   useEffect(() => {
     let isMounted = true;
     
-    const load = async () => {
-      if (!orderId) return;
-      
-      setLoading(true);
-      setError('');
-      
+    const loadOrderData = async () => {
       try {
-        // First try to find which user has this order
-        const foundUserId = await findUserWithOrder(orderId);
+        setLoading(true);
+        setError('');
+
+        // Try to find the user who has this order
+        const userId = await findUserWithOrder(orderId);
         
-        if (foundUserId) {
-          const orderData = await fetchOrderFromUser(foundUserId);
-          if (orderData && isMounted) {
-            setOrder(orderData);
-            try {
-              const userData = await getUserById(foundUserId);
-              if (isMounted) setUser(userData);
-            } catch (e) {
-              console.warn('Could not load user details:', e);
-            }
-            return;
-          }
-        }
-        
-        // Try to get the order from the root 'orders' collection
-        const orderRef = doc(db, 'orders', orderId);
-        const orderSnap = await getDoc(orderRef);
-        
-        if (orderSnap.exists() && isMounted) {
-          // Found in root orders collection
-          const orderData = orderSnap.data();
-          setOrder(orderData);
+        if (!isMounted) return;
+
+        if (userId) {
+          // Fetch order from user's collection
+          const orderData = await fetchOrderFromUser(userId);
           
-          // Try to get user details if available
-          const userId = orderData.userId || orderData.customerDetails?.id;
-          if (userId && userId !== 'anonymous') {
+          if (!isMounted) return;
+
+          if (orderData) {
+            setOrder(orderData);
+            
+            // Fetch user details
             try {
               const userData = await getUserById(userId);
-              if (isMounted) setUser(userData);
-            } catch (e) {
-              console.warn('Could not load user details:', e);
+              if (isMounted && userData) {
+                setUser(userData);
+              }
+            } catch (userError) {
+              console.warn('Error fetching user details:', userError);
             }
+          } else {
+            setError('Order not found in user collection');
           }
-          return;
-        }
-        
-        // If not found in user or root orders, try anonymous orders
-        const anonOrderRef = doc(db, 'anonymousOrders', orderId);
-        const anonOrderSnap = await getDoc(anonOrderRef);
-        
-        if (anonOrderSnap.exists() && isMounted) {
-          // Found in anonymous orders
-          const orderData = anonOrderSnap.data();
-          
-          // Handle different possible item formats
-          let items = [];
-          if (orderData.items) {
-            if (Array.isArray(orderData.items)) {
-              items = orderData.items;
-            } else if (typeof orderData.items === 'object') {
-              // Handle object format {itemId1: {details}, itemId2: {details}}
-              items = Object.values(orderData.items);
+        } else {
+          // Try to fetch from root orders collection
+          try {
+            const rootOrderRef = doc(db, 'orders', orderId);
+            const rootOrderSnap = await getDoc(rootOrderRef);
+            
+            if (!isMounted) return;
+
+            if (rootOrderSnap.exists()) {
+              const orderData = rootOrderSnap.data();
+              setOrder({
+                id: rootOrderSnap.id,
+                ...orderData,
+                items: orderData.items ? (Array.isArray(orderData.items) ? orderData.items : Object.values(orderData.items)) : [],
+                status: orderData.status || 'pending',
+                total: orderData.total || 0,
+                amount: orderData.amount || 0,
+                createdAt: orderData.createdAt || orderData.timestamp || new Date()
+              });
+            } else {
+              // Try anonymous orders
+              const anonOrderRef = doc(db, 'anonymousOrders', orderId);
+              const anonOrderSnap = await getDoc(anonOrderRef);
+              
+              if (!isMounted) return;
+
+              if (anonOrderSnap.exists()) {
+                const orderData = anonOrderSnap.data();
+                setOrder({
+                  id: anonOrderSnap.id,
+                  ...orderData,
+                  items: orderData.items ? (Array.isArray(orderData.items) ? orderData.items : Object.values(orderData.items)) : [],
+                  status: orderData.status || 'pending',
+                  total: orderData.total || 0,
+                  amount: orderData.amount || 0,
+                  createdAt: orderData.createdAt || orderData.timestamp || new Date()
+                });
+              } else {
+                setError('Order not found');
+              }
             }
-          } else if (orderData.cartItems) {
-            // Some orders might have items in cartItems
-            items = Array.isArray(orderData.cartItems) 
-              ? orderData.cartItems 
-              : Object.values(orderData.cartItems);
+          } catch (rootError) {
+            console.error('Error fetching from root collections:', rootError);
+            setError('Error loading order data');
           }
-          
-          // Ensure each item has required fields
-          items = items.map(item => ({
-            name: item.name || item.title || 'Unnamed Item',
-            price: item.price || 0,
-            quantity: item.quantity || 1,
-            ...item
-          }));
-          
-          setOrder({
-            id: anonOrderSnap.id,
-            ...orderData,
-            items: items,
-            isAnonymous: true, // Mark as anonymous order
-            customerDetails: orderData.customerDetails || {
-              email: orderData.email || 'Anonymous Customer',
-              name: orderData.customerName || 'Anonymous Customer'
-            },
-            // Ensure we have a total
-            total: orderData.total || orderData.amount || items.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0)
-          });
-        } else if (isMounted) {
-          setError('Order not found in any collection');
         }
-      } catch (e) {
-        console.error('Error loading order:', e);
+      } catch (error) {
+        console.error('Error in loadOrderData:', error);
         if (isMounted) {
-          setError(e.message || 'Failed to load order');
+          setError('Failed to load order data');
         }
       } finally {
         if (isMounted) {
@@ -299,468 +191,290 @@ const OrderDetail = () => {
         }
       }
     };
-    
-    load();
-    
-    // Cleanup function to prevent state updates after unmount
+
+    loadOrderData();
+
     return () => {
       isMounted = false;
     };
   }, [orderId, findUserWithOrder, fetchOrderFromUser]);
 
-  const theme = useTheme();
+  // Calculate order total
+  const orderTotal = React.useMemo(() => {
+    if (!order?.items?.length) return order?.total || order?.amount || 0;
+    return order.items.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
+  }, [order]);
 
   if (loading) {
     return (
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        minHeight: '60vh',
-        flexDirection: 'column',
-        gap: 2
-      }}>
-        <CircularProgress />
-        <Typography color="text.secondary">Loading order details...</Typography>
-      </Box>
+      <div className="order-detail-container">
+        <div className="order-detail-content">
+          <div className="loading-container">
+            <div className="loading-spinner"></div>
+            <p style={{ color: 'white', marginTop: '20px' }}>Loading order details...</p>
+          </div>
+        </div>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Box sx={{ p: 3, textAlign: 'center' }}>
-        <Typography color="error">{error}</Typography>
-        <Button 
-          variant="contained" 
-          onClick={() => window.location.reload()}
-          sx={{ mt: 2 }}
-        >
-          Retry
-        </Button>
-      </Box>
+      <div className="order-detail-container">
+        <div className="order-detail-content">
+          <button className="back-button" onClick={() => navigate(-1)}>
+            ← Back
+          </button>
+          <div className="error-message">
+            {error}
+          </div>
+        </div>
+      </div>
     );
   }
 
   if (!order) {
     return (
-      <Box sx={{ p: 3, textAlign: 'center' }}>
-        <Typography>Order not found</Typography>
-        <Button 
-          variant="outlined" 
-          onClick={() => navigate(-1)}
-          sx={{ mt: 2 }}
-        >
-          Back to Orders
-        </Button>
-      </Box>
+      <div className="order-detail-container">
+        <div className="order-detail-content">
+          <button className="back-button" onClick={() => navigate(-1)}>
+            ← Back
+          </button>
+          <div className="error-message">
+            Order not found
+          </div>
+        </div>
+      </div>
     );
   }
 
-  // Calculate order total
-  const orderTotal = order.total || order.amount || 
-    (Array.isArray(order.items) ? 
-      order.items.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0) : 0);
-
-  // Format address
-  const formatAddress = (shipping) => {
-    if (!shipping) return 'No shipping address provided';
-    if (shipping.address) return shipping.address;
-    
-    const { address1, address2, city, state, postalCode, country } = shipping;
-    return [
-      address1,
-      address2,
-      [city, state, postalCode].filter(Boolean).join(', '),
-      country
-    ].filter(Boolean).join('\n');
-  };
-
   return (
-    <Box sx={{ p: { xs: 1.5, md: 3 }, maxWidth: 1400, margin: '0 auto' }}>
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate(-1)}
-          sx={{ textTransform: 'none' }}
-        >
-          Back to Orders
-        </Button>
-      </Box>
+    <div className="order-detail-container">
+      <div className="order-detail-content">
+        <button className="back-button" onClick={() => navigate(-1)}>
+          ← Back to Orders
+        </button>
 
-      <OrderCard>
-        <CardHeader
-          title={
-            <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-              <Typography variant="h5" component="h1" sx={{ fontWeight: 600 }}>
-                Order #{order.id?.substring(0, 8).toUpperCase()}
-              </Typography>
-              {order.status && (
-                <StatusChip 
-                  label={order.status} 
-                  status={order.status.toLowerCase()} 
-                />
-              )}
-            </Box>
-          }
-          subheader={`Placed on ${formatDate(order.createdAt)}`}
-          action={
-            <Box sx={{ display: { xs: 'none', md: 'block' } }}>
-              <Typography variant="h6" color="primary" sx={{ fontWeight: 600, textAlign: 'right' }}>
-                {currency(orderTotal)}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'right' }}>
-                {order.items?.length || 0} items
-              </Typography>
-            </Box>
-          }
-          sx={{
-            borderBottom: `1px solid ${theme.palette.divider}`,
-            '& .MuiCardHeader-action': {
-              alignSelf: 'center',
-              margin: 0,
-            },
-          }}
-        />
-        <CardContent>
+        {/* Order Header */}
+        <div className="order-header">
+          <div className="order-title">
+            🛍️ Order #{orderId?.substring(0, 8).toUpperCase()}
+          </div>
+          <div className="order-subtitle">
+            Placed on {formatDate(order.createdAt)}
+          </div>
+          
+          <div className="order-meta">
+            <div className={`status-chip ${getStatusClass(order.status)}`}>
+              {order.status || 'pending'}
+            </div>
+            <div className="order-total">
+              <div className="total-amount">{currency(orderTotal)}</div>
+              <div className="total-items">{order.items?.length || 0} items</div>
+            </div>
+          </div>
+        </div>
 
-          <Grid container spacing={4}>
-            {/* Order Items Section */}
-            <Grid item xs={12} lg={8}>
-              <SectionTitle variant="h6">
-                <ReceiptIcon /> Order Items
-              </SectionTitle>
-              
-              <TableContainer component={Paper} elevation={0} variant="outlined">
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Product</TableCell>
-                      <TableCell align="right">Price</TableCell>
-                      <TableCell align="center">Qty</TableCell>
-                      <TableCell align="right">Total</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {Array.isArray(order.items) && order.items.length > 0 ? (
-                      order.items.map((item, idx) => (
-                        <TableRow key={idx} hover>
-                          <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                              {item.image ? (
-                                <ProductImage 
-                                  src={item.image} 
-                                  alt={item.name || 'Product'} 
-                                  onError={(e) => {
-                                    e.target.onerror = null;
-                                    e.target.src = 'https://via.placeholder.com/80?text=No+Image';
-                                  }}
-                                />
-                              ) : (
-                                <Box sx={{ 
-                                  width: 80, 
-                                  height: 80, 
-                                  bgcolor: 'grey.100',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  borderRadius: 1
-                                }}>
-                                  <ImageIcon color="disabled" />
-                                </Box>
-                              )}
-                              <Box>
-                                <Typography variant="subtitle2">
-                                  {item.name || 'Unnamed Product'}
-                                </Typography>
-                                {item.sku && (
-                                  <Typography variant="caption" color="text.secondary">
-                                    SKU: {item.sku}
-                                  </Typography>
-                                )}
-                                {item.variant && (
-                                  <Typography variant="caption" color="text.secondary" display="block">
-                                    {item.variant}
-                                  </Typography>
-                                )}
-                              </Box>
-                            </Box>
-                          </TableCell>
-                          <TableCell align="right">
-                            {currency(item.price || 0)}
-                          </TableCell>
-                          <TableCell align="center">
-                            {item.quantity || 1}
-                          </TableCell>
-                          <TableCell align="right">
-                            <Typography fontWeight={500}>
-                              {currency((item.price || 0) * (item.quantity || 1))}
-                            </Typography>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={4} align="center" sx={{ py: 3 }}>
-                          <Typography color="text.secondary">No items in this order</Typography>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-
-              {/* Order Notes */}
-              {order.notes && (
-                <Box sx={{ mt: 3 }}>
-                  <SectionTitle variant="h6">
-                    <EditIcon fontSize="small" /> Order Notes
-                  </SectionTitle>
-                  <Paper variant="outlined" sx={{ p: 2, bgcolor: 'background.default' }}>
-                    <Typography variant="body2" whiteSpace="pre-line">
-                      {order.notes}
-                    </Typography>
-                  </Paper>
-                </Box>
-              )}
-            </Grid>
-
-            {/* Order Summary Section */}
-            <Grid item xs={12} lg={4}>
-              <Box sx={{ position: 'sticky', top: 20 }}>
-                {/* Customer Information */}
-                <Card variant="outlined" sx={{ mb: 3 }}>
-                  <CardContent>
-                    <SectionTitle variant="subtitle1">
-                      <PersonIcon fontSize="small" /> Customer
-                    </SectionTitle>
-                    
-                    {order.isAnonymous || order.customerDetails ? (
-                      <Box>
-                        <Typography variant="subtitle2" gutterBottom>
-                          {order.customerDetails?.firstName && order.customerDetails?.lastName 
-                            ? `${order.customerDetails.firstName} ${order.customerDetails.lastName}`
-                            : 'Guest Checkout'
-                          }
-                        </Typography>
-                        
-                        {order.customerDetails?.email && (
-                          <InfoRow 
-                            icon={PersonIcon} 
-                            label="Email" 
-                            value={order.customerDetails.email} 
-                          />
-                        )}
-                        
-                        {order.customerDetails?.phone && (
-                          <InfoRow 
-                            icon={PhoneIcon} 
-                            label="Phone" 
-                            value={order.customerDetails.phone} 
-                          />
-                        )}
-                        
-                        {(order.customerDetails?.address || order.customerDetails?.city) && (
-                          <InfoRow 
-                            icon={LocationIcon} 
-                            label="Address" 
-                            value={[
-                              order.customerDetails.address,
-                              [order.customerDetails.city, order.customerDetails.state, order.customerDetails.zipCode]
-                                .filter(Boolean).join(', '),
-                              order.customerDetails.country
-                            ].filter(Boolean).join('\n')} 
-                          />
-                        )}
-                      </Box>
-                    ) : user ? (
-                      <Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
-                          <Avatar 
-                            src={user.photoURL} 
-                            sx={{ width: 40, height: 40, mr: 1.5 }}
-                          >
-                            {user.name?.[0] || user.email?.[0]}
-                          </Avatar>
-                          <Box>
-                            <Typography variant="subtitle2">
-                              {user.name || 'Customer'}
-                            </Typography>
-                            {user.email && (
-                              <Typography variant="body2" color="text.secondary">
-                                {user.email}
-                              </Typography>
-                            )}
-                          </Box>
-                        </Box>
-                        
-                        <Box sx={{ ml: 5.5 }}>
-                          {user.phoneNumber && (
-                            <InfoRow 
-                              icon={PhoneIcon} 
-                              label="Phone" 
-                              value={user.phoneNumber} 
+        <div className="order-content">
+          {/* Order Items Section */}
+          <div className="section-card">
+            <div className="section-title">
+              📦 Order Items
+            </div>
+            
+            <table className="items-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Price</th>
+                  <th>Qty</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Array.isArray(order.items) && order.items.length > 0 ? (
+                  order.items.map((item, idx) => (
+                    <tr key={idx}>
+                      <td>
+                        <div className="product-info">
+                          {item.image ? (
+                            <img 
+                              src={item.image} 
+                              alt={item.name || 'Product'} 
+                              className="product-image"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = 'https://via.placeholder.com/60?text=No+Image';
+                              }}
                             />
+                          ) : (
+                            <div className="product-image" style={{ 
+                              background: '#f8f9fa', 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'center',
+                              fontSize: '12px',
+                              color: '#999'
+                            }}>
+                              📷
+                            </div>
                           )}
-                          {order.customerDetails?.phone && !user.phoneNumber && (
-                            <InfoRow 
-                              icon={PhoneIcon} 
-                              label="Phone" 
-                              value={order.customerDetails.phone} 
-                            />
-                          )}
-                        </Box>
-                      </Box>
-                    ) : (
-                      <Typography>Guest Customer</Typography>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Shipping Information */}
-                {order.shipping && (
-                  <Card variant="outlined" sx={{ mb: 3 }}>
-                    <CardContent>
-                      <SectionTitle variant="subtitle1">
-                        <ShippingIcon fontSize="small" /> Shipping Information
-                      </SectionTitle>
-                      
-                      <InfoRow 
-                        icon={LocationIcon} 
-                        label="Address" 
-                        value={formatAddress(order.shipping)} 
-                      />
-                      
-                      {order.shipping.phone && (
-                        <InfoRow 
-                          icon={PhoneIcon} 
-                          label="Contact" 
-                          value={order.shipping.phone} 
-                        />
-                      )}
-                      
-                      {order.shipping.tracking_number && (
-                        <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-                          <Typography variant="subtitle2" gutterBottom>
-                            Tracking Information
-                          </Typography>
-                          <InfoRow 
-                            icon={ShippingIcon} 
-                            label="Carrier" 
-                            value={order.shipping.carrier || 'Standard'} 
-                          />
-                          <Box sx={{ mt: 1 }}>
-                            <Button
-                              fullWidth
-                              variant="outlined"
-                              size="small"
-                              href={`https://www.google.com/search?q=track+${order.shipping.tracking_number}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              startIcon={<SearchIcon />}
-                            >
-                              Track #{order.shipping.tracking_number}
-                            </Button>
-                          </Box>
-                        </Box>
-                      )}
-                    </CardContent>
-                  </Card>
+                          <div className="product-details">
+                            <h4>{item.name || 'Unnamed Product'}</h4>
+                            {item.sku && <p>SKU: {item.sku}</p>}
+                            {item.variant && <p>{item.variant}</p>}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="price-cell">
+                        {currency(item.price || 0)}
+                      </td>
+                      <td className="quantity-cell">
+                        {item.quantity || 1}
+                      </td>
+                      <td className="price-cell">
+                        {currency((item.price || 0) * (item.quantity || 1))}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="4" style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
+                      No items found in this order
+                    </td>
+                  </tr>
                 )}
+              </tbody>
+            </table>
+          </div>
 
-                {/* Order Summary */}
-                <Card variant="outlined">
-                  <CardContent>
-                    <SectionTitle variant="subtitle1">
-                      <ReceiptIcon fontSize="small" /> Order Summary
-                    </SectionTitle>
-                    
-                    <Box sx={{ mb: 2 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                        <Typography variant="body2" color="text.secondary">
-                          Subtotal
-                        </Typography>
-                        <Typography variant="body2">
-                          {currency(orderTotal - (order.shipping?.price || 0))}
-                        </Typography>
-                      </Box>
-                      
-                      {order.shipping?.price > 0 && (
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                          <Typography variant="body2" color="text.secondary">
-                            Shipping
-                          </Typography>
-                          <Typography variant="body2">
-                            {currency(order.shipping.price)}
-                          </Typography>
-                        </Box>
+          {/* Customer & Shipping Info */}
+          <div>
+            {/* Customer Information */}
+            <div className="section-card">
+              <div className="section-title">
+                👤 Customer Information
+              </div>
+              
+              <div className="customer-info">
+                <div className="info-row">
+                  <div className="info-icon">👤</div>
+                  <div className="info-content">
+                    <div className="info-label">Customer</div>
+                    <div className="info-value">
+                      {order.customerDetails?.firstName && order.customerDetails?.lastName 
+                        ? `${order.customerDetails.firstName} ${order.customerDetails.lastName}`
+                        : order.customerDetails?.email || order.customer || 'Unknown Customer'
+                      }
+                    </div>
+                  </div>
+                </div>
+
+                <div className="info-row">
+                  <div className="info-icon">📧</div>
+                  <div className="info-content">
+                    <div className="info-label">Email</div>
+                    <div className="info-value">
+                      {order.customerDetails?.email || order.customer || 'Not provided'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="info-row">
+                  <div className="info-icon">📱</div>
+                  <div className="info-content">
+                    <div className="info-label">Phone</div>
+                    <div className="info-value">
+                      {order.customerDetails?.phone || 'Not provided'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="info-row">
+                  <div className="info-icon">📍</div>
+                  <div className="info-content">
+                    <div className="info-label">Address</div>
+                    <div className="info-value address-text">
+                      {order.customerDetails?.address ? (
+                        <>
+                          {order.customerDetails.address}<br />
+                          {order.customerDetails.city && `${order.customerDetails.city}, `}
+                          {order.customerDetails.state} {order.customerDetails.zipCode}<br />
+                          {order.customerDetails.country || 'US'}
+                        </>
+                      ) : (
+                        'Not provided'
                       )}
-                      
-                      {order.discount > 0 && (
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                          <Typography variant="body2" color="text.secondary">
-                            Discount
-                          </Typography>
-                          <Typography variant="body2" color="error">
-                            -{currency(order.discount)}
-                          </Typography>
-                        </Box>
-                      )}
-                      
-                      <Divider sx={{ my: 2 }} />
-                      
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                        <Typography variant="subtitle1" fontWeight={600}>
-                          Total
-                        </Typography>
-                        <Typography variant="subtitle1" fontWeight={600}>
-                          {currency(orderTotal)}
-                        </Typography>
-                      </Box>
-                      
-                      {order.paymentMethod && (
-                        <Box sx={{ 
-                          mt: 2, 
-                          p: 1.5, 
-                          bgcolor: 'success.light',
-                          color: 'success.contrastText',
-                          borderRadius: 1,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1
-                        }}>
-                          <PaymentIcon fontSize="small" />
-                          <Typography variant="body2">
-                            Paid with {order.paymentMethod}
-                          </Typography>
-                        </Box>
-                      )}
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Box>
-            </Grid>
-          </Grid>
-        </CardContent>
-        <Divider />
-        <CardActions sx={{ p: 2, justifyContent: 'flex-end', gap: 1, flexWrap: 'wrap' }}>
-          <Button 
-            variant="outlined"
-            startIcon={<PrintIcon />}
-            onClick={() => window.print()}
-          >
-            Print
-          </Button>
-          <Button 
-            variant="contained"
-            color="primary"
-            startIcon={<ShippingIcon />}
-            onClick={() => navigate(`/orders/${orderId}/shipping`)}
-          >
-            Manage Shipping
-          </Button>
-        </CardActions>
-      </OrderCard>
-    </Box>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Shipping Information */}
+            {order.shipping && (
+              <div className="section-card">
+                <div className="section-title">
+                  🚚 Shipping Information
+                </div>
+                
+                <div className="shipping-info">
+                  {order.shipping.tracking_number && (
+                    <div className="shipping-row">
+                      <div className="shipping-label">Tracking Number</div>
+                      <div className="shipping-value">
+                        {order.shipping.tracking_url ? (
+                          <a 
+                            href={order.shipping.tracking_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="tracking-link"
+                          >
+                            {order.shipping.tracking_number}
+                          </a>
+                        ) : (
+                          order.shipping.tracking_number
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {order.shipping.carrier && (
+                    <div className="shipping-row">
+                      <div className="shipping-label">Carrier</div>
+                      <div className="shipping-value">{order.shipping.carrier}</div>
+                    </div>
+                  )}
+                  
+                  {order.shipping.servicelevel && (
+                    <div className="shipping-row">
+                      <div className="shipping-label">Service Level</div>
+                      <div className="shipping-value">{order.shipping.servicelevel}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="action-buttons">
+              <button 
+                className="btn btn-outline"
+                onClick={() => window.print()}
+              >
+                🖨️ Print
+              </button>
+              <button 
+                className="btn btn-primary"
+                onClick={() => navigate(`/orders/${orderId}/shipping`)}
+              >
+                🚚 Manage Shipping
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 
