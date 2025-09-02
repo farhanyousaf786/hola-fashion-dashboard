@@ -19,8 +19,29 @@ async function getRates(req, res) {
     const apiKey = requireEnv('SHIPPO_API_KEY');
     const { from, to, parcel } = req.body || {};
 
+    console.log('Shippo getRates request:', { from, to, parcel });
+
     if (!from || !to || !parcel) {
       return res.status(400).json({ error: 'from, to, and parcel are required' });
+    }
+
+    // Validate required address fields
+    const validateAddress = (addr, name) => {
+      const required = ['name', 'street1', 'city', 'state', 'zip', 'country'];
+      const missing = required.filter(field => !addr[field] || addr[field].trim() === '');
+      if (missing.length > 0) {
+        throw new Error(`${name} address missing required fields: ${missing.join(', ')}`);
+      }
+    };
+
+    validateAddress(from, 'From');
+    validateAddress(to, 'To');
+
+    // Validate parcel fields
+    const requiredParcel = ['length', 'width', 'height', 'weight', 'distance_unit', 'mass_unit'];
+    const missingParcel = requiredParcel.filter(field => !parcel[field]);
+    if (missingParcel.length > 0) {
+      return res.status(400).json({ error: `Parcel missing required fields: ${missingParcel.join(', ')}` });
     }
 
     const shipmentPayload = {
@@ -29,6 +50,8 @@ async function getRates(req, res) {
       parcels: [parcel],
       async: false
     };
+
+    console.log('Shippo API request payload:', JSON.stringify(shipmentPayload, null, 2));
 
     const response = await fetch(`${SHIPPO_API_BASE}/shipments`, {
       method: 'POST',
@@ -40,12 +63,26 @@ async function getRates(req, res) {
     });
 
     const data = await response.json();
+    console.log('Shippo API response:', JSON.stringify(data, null, 2));
+
     if (!response.ok) {
+      console.error('Shippo API error:', data);
       return res.status(response.status).json({ error: data?.detail || 'Failed to get rates', raw: data });
     }
 
     // Return shipment + rates (sorted by amount ascending if present)
     const rates = Array.isArray(data.rates) ? [...data.rates] : [];
+    console.log(`Found ${rates.length} rates`);
+    
+    // Log any rate validation messages
+    if (data.rates) {
+      data.rates.forEach((rate, i) => {
+        if (rate.messages && rate.messages.length > 0) {
+          console.log(`Rate ${i} messages:`, rate.messages);
+        }
+      });
+    }
+
     rates.sort((a, b) => (parseFloat(a.amount) || 0) - (parseFloat(b.amount) || 0));
 
     return res.json({ shipment: data, rates });

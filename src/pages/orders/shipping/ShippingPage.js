@@ -1,23 +1,30 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Box, Typography, Button, Paper, Grid, TextField, MenuItem, CircularProgress, Alert, Divider } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import LocalShippingIcon from '@mui/icons-material/LocalShipping';
-import SearchIcon from '@mui/icons-material/Search';
-import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import { db } from '../../../firebase/firebase';
 import { doc, getDoc, collection, getDocs, updateDoc } from 'firebase/firestore';
+import LabelManager from '../../../components/LabelManager';
+import './ShippingPage.css';
 
 const API_BASE = process.env.NODE_ENV === 'production' ? '' : (process.env.REACT_APP_API_BASE || 'http://localhost:3001');
 
 const defaultFromAddress = {
-  name: 'Warehouse',
-  street1: '123 Main St',
-  city: 'Anytown',
+  name: 'Hola Fashion Warehouse',
+  street1: '1 Hacker Way',
+  city: 'Menlo Park',
   state: 'CA',
-  zip: '94016',
+  zip: '94025',
   country: 'US',
-  phone: ''
+  phone: '4155551234'
+};
+
+const defaultToAddress = {
+  name: 'John Doe',
+  street1: '965 Mission St',
+  city: 'San Francisco',
+  state: 'CA',
+  zip: '94103',
+  country: 'US',
+  phone: '4155555678'
 };
 
 const defaultParcel = {
@@ -39,7 +46,7 @@ const ShippingPage = () => {
   const [ownerUserId, setOwnerUserId] = useState(null);
 
   const [from, setFrom] = useState(defaultFromAddress);
-  const [to, setTo] = useState({ ...defaultFromAddress, name: '', phone: '' });
+  const [to, setTo] = useState(defaultToAddress);
   const [parcel, setParcel] = useState(defaultParcel);
   const [ratesLoading, setRatesLoading] = useState(false);
   const [rates, setRates] = useState([]);
@@ -88,40 +95,36 @@ const ShippingPage = () => {
   }, [findUserWithOrder]);
 
   useEffect(() => {
-    let mounted = true;
-    const load = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const data = await fetchOrder(orderId);
-        if (!mounted) return;
-        if (!data) {
+    if (orderId) {
+      fetchOrder(orderId).then(orderData => {
+        if (orderData) {
+          setOrder(orderData);
+          if (orderData.scope === 'user') setOwnerUserId(orderData.userId);
+          
+          // Auto-populate customer address if available
+          if (orderData.customerDetails) {
+            const customerAddr = {
+              name: `${orderData.customerDetails.firstName || ''} ${orderData.customerDetails.lastName || ''}`.trim(),
+              street1: orderData.customerDetails.address || '',
+              city: orderData.customerDetails.city || '',
+              state: orderData.customerDetails.state?.toUpperCase() || '',
+              zip: orderData.customerDetails.zipCode || '',
+              country: orderData.customerDetails.country || 'US',
+              phone: orderData.customerDetails.phone || ''
+            };
+            
+            // Only update if we have essential address fields
+            if (customerAddr.street1 && customerAddr.city && customerAddr.state && customerAddr.zip) {
+              setTo(customerAddr);
+              console.log('Auto-populated customer address:', customerAddr);
+            }
+          }
+        } else {
           setError('Order not found');
-          return;
         }
-        setOrder(data);
-        setOwnerUserId(data.userId || (data.scope === 'user' ? data.userId : null));
-        // Seed destination from order.shipping if present
-        const s = data.shipping || {};
-        setTo({
-          name: s.name || data.customerDetails?.name || 'Customer',
-          street1: s.address1 || s.address || '',
-          street2: s.address2 || '',
-          city: s.city || '',
-          state: s.state || s.region || '',
-          zip: s.postalCode || s.zip || '',
-          country: s.country || 'US',
-          phone: s.phone || data.customerDetails?.phone || ''
-        });
-      } catch (e) {
-        if (!mounted) return;
-        setError(e.message || 'Failed to load order');
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-    load();
-    return () => { mounted = false; };
+        setLoading(false);
+      });
+    }
   }, [orderId, fetchOrder]);
 
   const handleChange = (setter) => (e) => {
@@ -129,17 +132,6 @@ const ShippingPage = () => {
     setter((prev) => ({ ...prev, [name]: value }));
   };
 
-  const testConnection = async () => {
-    try {
-      const response = await fetch(`${API_BASE}/api/test`);
-      const data = await response.json();
-      setSuccessMsg(`✅ Connection test successful: ${data.message}`);
-      setErrorMsg('');
-    } catch (err) {
-      setErrorMsg(`❌ Connection test failed: ${err.message}`);
-      setSuccessMsg('');
-    }
-  };
 
   const fetchRates = async () => {
     setRatesLoading(true);
@@ -147,6 +139,8 @@ const ShippingPage = () => {
     setSuccessMsg('');
 
     try {
+      console.log('Fetching rates with data:', { from, to, parcel });
+      
       const response = await fetch(`${API_BASE}/api/shippo/rates`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -154,13 +148,22 @@ const ShippingPage = () => {
       });
 
       const data = await response.json();
+      console.log('Rates response:', data);
+      
       if (!response.ok) {
         throw new Error(data.error || 'Failed to fetch rates');
       }
 
       setRates(data.rates || []);
-      setSuccessMsg(`Found ${data.rates?.length || 0} shipping rates`);
+      
+      if (data.rates?.length === 0) {
+        setErrorMsg('No shipping rates found. This could be due to invalid addresses, unsupported shipping routes, or parcel dimensions. Check the browser console for detailed logs.');
+        console.warn('Shippo returned 0 rates. Full response:', data);
+      } else {
+        setSuccessMsg(`Found ${data.rates?.length || 0} shipping rates`);
+      }
     } catch (err) {
+      console.error('Fetch rates error:', err);
       setErrorMsg(err.message);
     } finally {
       setRatesLoading(false);
@@ -217,187 +220,329 @@ const ShippingPage = () => {
 
   if (loading) {
     return (
-      <Box sx={{ p: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <CircularProgress />
-      </Box>
+      <div className="shipping-container">
+        <div className="shipping-content">
+          <div style={{ textAlign: 'center', padding: '60px 20px', color: 'white' }}>
+            <div className="loading-spinner" style={{ margin: '0 auto 20px', width: '40px', height: '40px' }}></div>
+            <p>Loading shipping details...</p>
+          </div>
+        </div>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Box sx={{ p: 3, maxWidth: 900, m: '0 auto' }}>
-        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} sx={{ mb: 2 }}>Back</Button>
-        <Alert severity="error">{error}</Alert>
-      </Box>
+      <div className="shipping-container">
+        <div className="shipping-content">
+          <button className="back-button" onClick={() => navigate(-1)}>← Back</button>
+          <div className="alert alert-error" style={{ marginTop: '20px' }}>
+            ❌ {error}
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1000, margin: '0 auto' }}>
-      <Button 
-        startIcon={<ArrowBackIcon />} 
-        onClick={() => navigate(-1)}
-        sx={{ mb: 3 }}
-      >
-        Back to Order
-      </Button>
+    <div className="shipping-container">
+      <div className="shipping-content">
+        <button className="back-button" onClick={() => navigate(-1)}>
+          ← Back to Orders
+        </button>
 
-      <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1 }}>
-          <LocalShippingIcon color="primary" />
-          <Typography variant="h5" component="h1">
-            Shipping for Order #{orderId}
-          </Typography>
-        </Box>
-
-        <Typography color="text.secondary" sx={{ mb: 2 }}>
+      <div className="shipping-header">
+        <h1 className="shipping-title">
+          🚚 Shipping for Order #{orderId?.substring(0, 8).toUpperCase()}
+        </h1>
+        <p className="shipping-subtitle">
           Order total: ${orderTotal.toFixed(2)}
-        </Typography>
+        </p>
+      </div>
 
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={6}>
-            <Typography variant="subtitle1" sx={{ mb: 1 }}>From Address</Typography>
-            <Grid container spacing={1}>
-              <Grid item xs={12}>
-                <TextField size="small" fullWidth label="Name" name="name" value={from.name} onChange={handleChange(setFrom)} />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField size="small" fullWidth label="Street 1" name="street1" value={from.street1} onChange={handleChange(setFrom)} />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField size="small" fullWidth label="Street 2" name="street2" value={from.street2 || ''} onChange={handleChange(setFrom)} />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField size="small" fullWidth label="City" name="city" value={from.city} onChange={handleChange(setFrom)} />
-              </Grid>
-              <Grid item xs={3}>
-                <TextField size="small" fullWidth label="State" name="state" value={from.state} onChange={handleChange(setFrom)} />
-              </Grid>
-              <Grid item xs={3}>
-                <TextField size="small" fullWidth label="ZIP" name="zip" value={from.zip} onChange={handleChange(setFrom)} />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField size="small" fullWidth label="Country" name="country" value={from.country} onChange={handleChange(setFrom)} />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField size="small" fullWidth label="Phone" name="phone" value={from.phone || ''} onChange={handleChange(setFrom)} />
-              </Grid>
-            </Grid>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Typography variant="subtitle1" sx={{ mb: 1 }}>To Address</Typography>
-            <Grid container spacing={1}>
-              <Grid item xs={12}>
-                <TextField size="small" fullWidth label="Name" name="name" value={to.name} onChange={handleChange(setTo)} />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField size="small" fullWidth label="Street 1" name="street1" value={to.street1} onChange={handleChange(setTo)} />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField size="small" fullWidth label="Street 2" name="street2" value={to.street2 || ''} onChange={handleChange(setTo)} />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField size="small" fullWidth label="City" name="city" value={to.city} onChange={handleChange(setTo)} />
-              </Grid>
-              <Grid item xs={3}>
-                <TextField size="small" fullWidth label="State" name="state" value={to.state} onChange={handleChange(setTo)} />
-              </Grid>
-              <Grid item xs={3}>
-                <TextField size="small" fullWidth label="ZIP" name="zip" value={to.zip} onChange={handleChange(setTo)} />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField size="small" fullWidth label="Country" name="country" value={to.country} onChange={handleChange(setTo)} />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField size="small" fullWidth label="Phone" name="phone" value={to.phone || ''} onChange={handleChange(setTo)} />
-              </Grid>
-            </Grid>
-          </Grid>
+      <div className="shipping-form">
+        <div className="form-section">
+          <h2 className="section-title">📦 From Address</h2>
+          <div className="form-grid form-grid-2">
+            <div className="input-group">
+              <label className="input-label">Name</label>
+              <input 
+                className="form-input" 
+                name="name" 
+                value={from.name} 
+                onChange={handleChange(setFrom)} 
+              />
+            </div>
+            <div className="input-group">
+              <label className="input-label">Street 1</label>
+              <input 
+                className="form-input" 
+                name="street1" 
+                value={from.street1} 
+                onChange={handleChange(setFrom)} 
+              />
+            </div>
+            <div className="input-group">
+              <label className="input-label">Street 2</label>
+              <input 
+                className="form-input" 
+                name="street2" 
+                value={from.street2 || ''} 
+                onChange={handleChange(setFrom)} 
+              />
+            </div>
+            <div className="input-group">
+              <label className="input-label">City</label>
+              <input 
+                className="form-input" 
+                name="city" 
+                value={from.city} 
+                onChange={handleChange(setFrom)} 
+              />
+            </div>
+            <div className="input-group">
+              <label className="input-label">State</label>
+              <input 
+                className="form-input" 
+                name="state" 
+                value={from.state} 
+                onChange={handleChange(setFrom)} 
+              />
+            </div>
+            <div className="input-group">
+              <label className="input-label">ZIP</label>
+              <input 
+                className="form-input" 
+                name="zip" 
+                value={from.zip} 
+                onChange={handleChange(setFrom)} 
+              />
+            </div>
+            <div className="input-group">
+              <label className="input-label">Country</label>
+              <input 
+                className="form-input" 
+                name="country" 
+                value={from.country} 
+                onChange={handleChange(setFrom)} 
+              />
+            </div>
+            <div className="input-group">
+              <label className="input-label">Phone</label>
+              <input 
+                className="form-input" 
+                name="phone" 
+                value={from.phone || ''} 
+                onChange={handleChange(setFrom)} 
+              />
+            </div>
+          </div>
+        </div>
 
-          <Grid item xs={12}>
-            <Divider sx={{ my: 2 }} />
-          </Grid>
+        <div className="form-section">
+          <h2 className="section-title">📍 To Address</h2>
+          <div className="form-grid form-grid-2">
+            <div className="input-group">
+              <label className="input-label">Name</label>
+              <input 
+                className="form-input" 
+                name="name" 
+                value={to.name} 
+                onChange={handleChange(setTo)} 
+              />
+            </div>
+            <div className="input-group">
+              <label className="input-label">Street 1</label>
+              <input 
+                className="form-input" 
+                name="street1" 
+                value={to.street1} 
+                onChange={handleChange(setTo)} 
+              />
+            </div>
+            <div className="input-group">
+              <label className="input-label">Street 2</label>
+              <input 
+                className="form-input" 
+                name="street2" 
+                value={to.street2 || ''} 
+                onChange={handleChange(setTo)} 
+              />
+            </div>
+            <div className="input-group">
+              <label className="input-label">City</label>
+              <input 
+                className="form-input" 
+                name="city" 
+                value={to.city} 
+                onChange={handleChange(setTo)} 
+              />
+            </div>
+            <div className="input-group">
+              <label className="input-label">State</label>
+              <input 
+                className="form-input" 
+                name="state" 
+                value={to.state} 
+                onChange={handleChange(setTo)} 
+              />
+            </div>
+            <div className="input-group">
+              <label className="input-label">ZIP</label>
+              <input 
+                className="form-input" 
+                name="zip" 
+                value={to.zip} 
+                onChange={handleChange(setTo)} 
+              />
+            </div>
+            <div className="input-group">
+              <label className="input-label">Country</label>
+              <input 
+                className="form-input" 
+                name="country" 
+                value={to.country} 
+                onChange={handleChange(setTo)} 
+              />
+            </div>
+            <div className="input-group">
+              <label className="input-label">Phone</label>
+              <input 
+                className="form-input" 
+                name="phone" 
+                value={to.phone || ''} 
+                onChange={handleChange(setTo)} 
+              />
+            </div>
+          </div>
+        </div>
 
-          <Grid item xs={12} md={6}>
-            <Typography variant="subtitle1" sx={{ mb: 1 }}>Parcel</Typography>
-            <Grid container spacing={1}>
-              <Grid item xs={4}>
-                <TextField size="small" fullWidth label="Length" name="length" value={parcel.length} onChange={handleChange(setParcel)} />
-              </Grid>
-              <Grid item xs={4}>
-                <TextField size="small" fullWidth label="Width" name="width" value={parcel.width} onChange={handleChange(setParcel)} />
-              </Grid>
-              <Grid item xs={4}>
-                <TextField size="small" fullWidth label="Height" name="height" value={parcel.height} onChange={handleChange(setParcel)} />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField select size="small" fullWidth label="Distance Unit" name="distance_unit" value={parcel.distance_unit} onChange={handleChange(setParcel)}>
-                  <MenuItem value="in">in</MenuItem>
-                  <MenuItem value="cm">cm</MenuItem>
-                </TextField>
-              </Grid>
-              <Grid item xs={3}>
-                <TextField size="small" fullWidth label="Weight" name="weight" value={parcel.weight} onChange={handleChange(setParcel)} />
-              </Grid>
-              <Grid item xs={3}>
-                <TextField select size="small" fullWidth label="Mass Unit" name="mass_unit" value={parcel.mass_unit} onChange={handleChange(setParcel)}>
-                  <MenuItem value="lb">lb</MenuItem>
-                  <MenuItem value="oz">oz</MenuItem>
-                  <MenuItem value="g">g</MenuItem>
-                  <MenuItem value="kg">kg</MenuItem>
-                </TextField>
-              </Grid>
-            </Grid>
-          </Grid>
+        <div className="divider"></div>
 
-          <Grid item xs={12} md={6}>
-            <Typography variant="subtitle1" sx={{ mb: 1 }}>Actions</Typography>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-              <Button variant="outlined" onClick={testConnection}>
-                Test API
-              </Button>
-              <Button variant="contained" startIcon={<SearchIcon />} onClick={fetchRates} disabled={ratesLoading}>
-                {ratesLoading ? 'Fetching Rates...' : 'Get Rates'}
-              </Button>
-            </Box>
-          </Grid>
-        </Grid>
+        <div className="form-section">
+          <h2 className="section-title">📏 Parcel Details</h2>
+          <div className="form-grid form-grid-4">
+            <div className="input-group">
+              <label className="input-label">Length</label>
+              <input 
+                className="form-input" 
+                name="length" 
+                value={parcel.length} 
+                onChange={handleChange(setParcel)} 
+              />
+            </div>
+            <div className="input-group">
+              <label className="input-label">Width</label>
+              <input 
+                className="form-input" 
+                name="width" 
+                value={parcel.width} 
+                onChange={handleChange(setParcel)} 
+              />
+            </div>
+            <div className="input-group">
+              <label className="input-label">Height</label>
+              <input 
+                className="form-input" 
+                name="height" 
+                value={parcel.height} 
+                onChange={handleChange(setParcel)} 
+              />
+            </div>
+            <div className="input-group">
+              <label className="input-label">Weight</label>
+              <input 
+                className="form-input" 
+                name="weight" 
+                value={parcel.weight} 
+                onChange={handleChange(setParcel)} 
+              />
+            </div>
+            <div className="input-group">
+              <label className="input-label">Distance Unit</label>
+              <select 
+                className="form-select" 
+                name="distance_unit" 
+                value={parcel.distance_unit} 
+                onChange={handleChange(setParcel)}
+              >
+                <option value="in">in</option>
+                <option value="cm">cm</option>
+              </select>
+            </div>
+            <div className="input-group">
+              <label className="input-label">Mass Unit</label>
+              <select 
+                className="form-select" 
+                name="mass_unit" 
+                value={parcel.mass_unit} 
+                onChange={handleChange(setParcel)}
+              >
+                <option value="lb">lb</option>
+                <option value="oz">oz</option>
+                <option value="g">g</option>
+                <option value="kg">kg</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div className="form-section">
+          <h2 className="section-title">⚡ Actions</h2>
+          <div className="actions-section">
+            <button 
+              className="btn btn-primary" 
+              onClick={fetchRates} 
+              disabled={ratesLoading}
+            >
+              {ratesLoading ? (
+                <>
+                  <span className="loading-spinner"></span>
+                  Fetching Rates...
+                </>
+              ) : (
+                <>
+                  🔍 Get Rates
+                </>
+              )}
+            </button>
+          </div>
+        </div>
 
         {successMsg && (
-          <Alert sx={{ mt: 2 }} severity="success">{successMsg}</Alert>
+          <div className="alert alert-success">
+            ✅ {successMsg}
+          </div>
         )}
 
         {errorMsg && (
-          <Alert sx={{ mt: 2 }} severity="error">{errorMsg}</Alert>
+          <div className="alert alert-error">
+            ❌ {errorMsg}
+          </div>
         )}
+      </div>
 
-        {rates.length > 0 && (
-          <Box sx={{ mt: 3 }}>
-            <Typography variant="h6" sx={{ mb: 1 }}>
-              Available Rates
-            </Typography>
-            <Grid container spacing={2}>
-              {rates.map((r) => (
-                <Grid item xs={12} md={6} key={r.object_id || r.objectId || r.id}>
-                  <Paper variant="outlined" sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Box>
-                      <Typography fontWeight={600}>{r.provider} - {r.servicelevel?.name || r.servicelevel_name}</Typography>
-                      <Typography variant="body2" color="text.secondary">Est. days: {r.estimated_days ?? 'N/A'}</Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Typography variant="h6">${parseFloat(r.amount).toFixed(2)}</Typography>
-                      <Button size="small" variant="contained" color="primary" startIcon={<ReceiptLongIcon />} onClick={() => buyLabel(r)} disabled={buying}>
-                        {buying ? 'Purchasing...' : 'Buy Label'}
-                      </Button>
-                    </Box>
-                  </Paper>
-                </Grid>
-              ))}
-            </Grid>
-          </Box>
-        )}
-      </Paper>
-    </Box>
+      {rates.length > 0 && (
+        <div className="rates-section">
+          <h2 className="rates-title">🚛 Available Shipping Rates</h2>
+          <div className="rates-grid">
+            {rates.map((rate) => (
+              <div key={rate.object_id || rate.objectId || rate.id}>
+                <LabelManager 
+                  rate={rate} 
+                  orderId={orderId}
+                  onLabelPurchased={(labelInfo) => {
+                    updateOrderTracking(labelInfo);
+                    setSuccessMsg(`Label purchased! Tracking: ${labelInfo.tracking_number}`);
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      </div>
+    </div>
   );
 };
 

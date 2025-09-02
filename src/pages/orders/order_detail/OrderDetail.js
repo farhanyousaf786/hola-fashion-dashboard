@@ -534,8 +534,44 @@ const OrderDetail = () => {
                       <PersonIcon fontSize="small" /> Customer
                     </SectionTitle>
                     
-                    {order.isAnonymous ? (
-                      <Typography>Guest Checkout</Typography>
+                    {order.isAnonymous || order.customerDetails ? (
+                      <Box>
+                        <Typography variant="subtitle2" gutterBottom>
+                          {order.customerDetails?.firstName && order.customerDetails?.lastName 
+                            ? `${order.customerDetails.firstName} ${order.customerDetails.lastName}`
+                            : 'Guest Checkout'
+                          }
+                        </Typography>
+                        
+                        {order.customerDetails?.email && (
+                          <InfoRow 
+                            icon={PersonIcon} 
+                            label="Email" 
+                            value={order.customerDetails.email} 
+                          />
+                        )}
+                        
+                        {order.customerDetails?.phone && (
+                          <InfoRow 
+                            icon={PhoneIcon} 
+                            label="Phone" 
+                            value={order.customerDetails.phone} 
+                          />
+                        )}
+                        
+                        {(order.customerDetails?.address || order.customerDetails?.city) && (
+                          <InfoRow 
+                            icon={LocationIcon} 
+                            label="Address" 
+                            value={[
+                              order.customerDetails.address,
+                              [order.customerDetails.city, order.customerDetails.state, order.customerDetails.zipCode]
+                                .filter(Boolean).join(', '),
+                              order.customerDetails.country
+                            ].filter(Boolean).join('\n')} 
+                          />
+                        )}
+                      </Box>
                     ) : user ? (
                       <Box>
                         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
