@@ -15,7 +15,7 @@ import Profile from './pages/profile/Profile';
 import UsersList from './pages/users/UsersList';
 import UserDetail from './pages/users/UserDetail';
 import OrderDetail from './pages/orders/order_detail/OrderDetail';
-import ShippingPage from './pages/orders/order_detail/shipping/ShippingPage';
+import ShippingPage from './pages/orders/shipping/ShippingPage';
 
 // Import Firebase and Auth context
 import './firebase/firebase';
