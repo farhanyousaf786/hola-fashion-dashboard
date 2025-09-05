@@ -1,14 +1,22 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-require('dotenv').config({ path: '../.env' });
+const fs = require('fs');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// CORS setup
+// CORS setup (allow common frontend dev ports)
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3002',
+];
 app.use(cors({
-  origin: 'http://localhost:3002',
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(null, false);
+  },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
@@ -25,30 +33,13 @@ app.get('/api/test', (req, res) => {
 const shippoRoutes = require('./routes/shippoRoutes');
 app.use('/api/shippo', shippoRoutes);
 
-// Serve static assets if in production
-if (process.env.NODE_ENV === 'production') {
-  // Set static folder
-  app.use(express.static(path.join(__dirname, '../build')));
-
-  // Handle React routes without wildcards
-  app.get('/', (req, res) => {
-    res.sendFile(path.resolve(__dirname, '../build', 'index.html'));
-  });
-  
-  app.get('/orders', (req, res) => {
-    res.sendFile(path.resolve(__dirname, '../build', 'index.html'));
-  });
-  
-  app.get('/orders/:id', (req, res) => {
-    res.sendFile(path.resolve(__dirname, '../build', 'index.html'));
-  });
-  
-  app.get('/orders/:id/shipping', (req, res) => {
-    res.sendFile(path.resolve(__dirname, '../build', 'index.html'));
-  });
-  
-  app.get('/items', (req, res) => {
-    res.sendFile(path.resolve(__dirname, '../build', 'index.html'));
+// Serve static assets if build exists (works in dev and prod)
+const buildDir = path.join(__dirname, '../build');
+if (fs.existsSync(buildDir)) {
+  app.use(express.static(buildDir));
+  // Wildcard handler for client routes (exclude API) - Express v5 compatible
+  app.get(/^(?!\/api\/).*/, (req, res) => {
+    res.sendFile(path.resolve(buildDir, 'index.html'));
   });
 }
 

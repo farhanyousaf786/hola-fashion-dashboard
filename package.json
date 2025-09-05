@@ -29,13 +29,16 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "start:client": "PORT=3002 react-scripts start",
     "server": "node server/index.js",
     "server:dev": "nodemon server/index.js",
+    "dev": "concurrently -k -n client,server -c cyan,magenta \"npm run start:client\" \"npm run server:dev\"",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "heroku-postbuild": "npm run build"
   },
+  "proxy": "http://localhost:3001",
   "eslintConfig": {
     "extends": [
       "react-app",
