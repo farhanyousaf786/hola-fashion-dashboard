@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { db } from '../../../firebase/firebase';
-import { doc, getDoc, collection, getDocs, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs, updateDoc, serverTimestamp } from 'firebase/firestore';
 import LabelManager from '../label_manager/LabelManager';
 import './ShippingPage.css';
 
@@ -176,15 +176,21 @@ const ShippingPage = () => {
       const clean = Object.fromEntries(
         Object.entries(tracking).filter(([_, v]) => v !== undefined)
       );
+      // Common payload for all order locations
+      const updates = {
+        shipping: { ...(order.shipping || {}), ...clean },
+        status: 'PROCESSING',
+        labelPurchasedAt: serverTimestamp(),
+      };
       if (order.scope === 'user' && ownerUserId) {
         const ref = doc(db, 'users', ownerUserId, 'orders', orderId);
-        await updateDoc(ref, { shipping: { ...(order.shipping || {}), ...clean } });
+        await updateDoc(ref, updates);
       } else if (order.scope === 'root') {
         const ref = doc(db, 'orders', orderId);
-        await updateDoc(ref, { shipping: { ...(order.shipping || {}), ...clean } });
+        await updateDoc(ref, updates);
       } else if (order.scope === 'anonymous') {
         const ref = doc(db, 'anonymousOrders', orderId);
-        await updateDoc(ref, { shipping: { ...(order.shipping || {}), ...clean } });
+        await updateDoc(ref, updates);
       }
     } catch (e) {
       console.warn('Failed to persist tracking info:', e);

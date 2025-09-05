@@ -13,6 +13,21 @@ const getStatusClass = (status) => {
   return 'status-pending';
 };
 
+// Build a tracking URL if one isn't already provided
+const buildTrackingUrl = (shipping) => {
+  if (!shipping?.tracking_number) return '';
+  if (shipping.tracking_url) return shipping.tracking_url;
+  const tn = encodeURIComponent(shipping.tracking_number);
+  const carrier = (shipping.carrier || '').toLowerCase();
+  if (carrier.includes('usps')) return `https://tools.usps.com/go/TrackConfirmAction?tLabels=${tn}`;
+  if (carrier.includes('ups')) return `https://www.ups.com/track?loc=en_US&tracknum=${tn}`;
+  if (carrier.includes('fedex')) return `https://www.fedex.com/fedextrack/?trknbr=${tn}`;
+  if (carrier.includes('dhl') && carrier.includes('express')) return `https://www.dhl.com/us-en/home/tracking.html?tracking-id=${tn}`;
+  if (carrier.includes('dhl')) return `https://track.dhlglobalmail.com/?trackingnumber=${tn}`;
+  // Fallback to aftership generic
+  return `https://track.aftership.com/${tn}`;
+};
+
 const formatDate = (ts) => {
   if (!ts) return '';
   try {
@@ -268,7 +283,7 @@ const OrderDetail = () => {
             {/* Top Actions */}
         <div className="top-actions">
           <button
-            className="btn btn-primary btn-primary--blue"
+            className="btn btn-track"
             onClick={() => navigate(`/orders/${orderId}/shipping`)}
           >
             🚚 Manage Shipping
@@ -462,6 +477,19 @@ const OrderDetail = () => {
                     <div className="shipping-row">
                       <div className="shipping-label">Service Level</div>
                       <div className="shipping-value">{order.shipping.servicelevel}</div>
+                    </div>
+                  )}
+
+                  {order.shipping.tracking_number && (
+                    <div className="shipping-row" style={{ marginTop: '12px' }}>
+                      <a
+                        href={buildTrackingUrl(order.shipping)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn btn-track"
+                      >
+                        🔎 Track Package
+                      </a>
                     </div>
                   )}
                 </div>

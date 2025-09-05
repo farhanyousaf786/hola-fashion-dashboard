@@ -310,6 +310,31 @@
   box-shadow: 0 8px 25px rgba(37, 99, 235, 0.3);
 }
 
+/* Small button utility */
+.btn--sm {
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 18px;
+}
+
+/* Dedicated small red tracking button */
+.btn-track {
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #ff6b6b, #e63946);
+  color: #fff;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-track:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(230, 57, 70, 0.35);
+}
+
 .loading-container {
   display: flex;
   justify-content: center;

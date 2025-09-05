@@ -52,7 +52,14 @@ const LabelManager = ({ rate, onLabelPurchased, orderId }) => {
         throw new Error(data.error || 'Failed to purchase label');
       }
 
-      setLabelData(data);
+      // Merge with selected rate so the success card has complete info
+      const merged = {
+        ...data,
+        carrier: data.carrier || rate?.provider || null,
+        servicelevel: data.servicelevel || (rate?.servicelevel ? rate.servicelevel.name : null),
+        amount: data.amount || rate?.amount || null,
+      };
+      setLabelData(merged);
       if (data.label_url) {
         setShowPreview(true);
       }
@@ -60,12 +67,12 @@ const LabelManager = ({ rate, onLabelPurchased, orderId }) => {
       // Notify parent component
       if (onLabelPurchased) {
         onLabelPurchased({
-          tracking_number: data.tracking_number,
-          tracking_url: data.tracking_url_provider,
-          label_url: data.label_url,
-          carrier: data.carrier,
-          service: data.servicelevel,
-          amount: data.amount
+          tracking_number: merged.tracking_number,
+          tracking_url: merged.tracking_url_provider,
+          label_url: merged.label_url,
+          carrier: merged.carrier,
+          service: merged.servicelevel,
+          amount: merged.amount,
         });
       }
 
